@@ -11,10 +11,9 @@ CATS.stroop = {
 
 
     /* ─────────────────────────────
-       НАБОРЫ ЦВЕТОВ
+       ЦВЕТА ПО УРОВНЯМ
        ───────────────────────────── */
 
-    // Уровень 1 — 4 цвета
     const C4 = [
       'красный',
       'синий',
@@ -22,7 +21,6 @@ CATS.stroop = {
       'зелёный'
     ];
 
-    // Уровень 2 — 7 цветов
     const C7 = [
       ...C4,
       'оранжевый',
@@ -30,7 +28,6 @@ CATS.stroop = {
       'фиолетовый'
     ];
 
-    // Уровень 3 — 10 цветов
     const C10 = [
       ...C7,
       'розовый',
@@ -38,7 +35,6 @@ CATS.stroop = {
       'бордовый'
     ];
 
-    // Уровень 4 — 12 цветов
     const C12 = [
       ...C10,
       'серый',
@@ -47,60 +43,85 @@ CATS.stroop = {
 
 
     /* ─────────────────────────────
-       СТАНДАРТНЫЕ CSS-ЦВЕТА
+       СТАНДАРТНЫЕ ЦВЕТА
        ───────────────────────────── */
 
     const K = {
-      красный:     '#FF0000', // red
-      синий:       '#0000FF', // blue
-      жёлтый:      '#FFFF00', // yellow
-      зелёный:     '#008000', // green
+      красный:     '#FF0000',
+      синий:       '#0000FF',
+      жёлтый:      '#FFFF00',
+      зелёный:     '#008000',
 
-      оранжевый:   '#FFA500', // orange
-      голубой:     '#00BFFF', // deep sky blue
-      фиолетовый:  '#800080', // purple
+      оранжевый:   '#FFA500',
+      голубой:     '#00BFFF',
+      фиолетовый:  '#800080',
 
-      розовый:     '#FFC0CB', // pink
-      коричневый:  '#A52A2A', // brown
-      бордовый:    '#800000', // maroon
+      розовый:     '#FFC0CB',
+      коричневый:  '#A52A2A',
+      бордовый:    '#800000',
 
-      серый:       '#808080', // gray
-      черный:      '#000000'  // black
+      серый:       '#808080',
+      черный:      '#000000'
     };
 
 
     /* ─────────────────────────────
-       ШРИФТЫ-ДИСТРАКТОРЫ
-       Уровни 3–4
+       ШРИФТЫ ДЛЯ 3–4 УРОВНЯ
+
+       Специально выбраны максимально
+       визуально разные системные шрифты.
        ───────────────────────────── */
 
     const FONTS = [
-      'Arial, sans-serif',
-      'Georgia, serif',
-      '"Courier New", monospace',
-      '"Trebuchet MS", sans-serif',
-      'Verdana, sans-serif',
-      '"Times New Roman", serif'
+      {
+        family: 'Arial, sans-serif',
+        weight: '700'
+      },
+      {
+        family: 'Georgia, serif',
+        weight: '700'
+      },
+      {
+        family: '"Courier New", monospace',
+        weight: '700'
+      },
+      {
+        family: 'Impact, sans-serif',
+        weight: '400'
+      },
+      {
+        family: '"Times New Roman", serif',
+        weight: '700'
+      },
+      {
+        family: '"Comic Sans MS", cursive',
+        weight: '700'
+      }
     ];
 
 
     /* ─────────────────────────────
-       ВЫБОР НАБОРА ПО УРОВНЮ
+       НАБОР ЦВЕТОВ
        ───────────────────────────── */
 
     let pool;
 
-    if (lvl.id === 1) {
-      pool = C4;
-    }
-    else if (lvl.id === 2) {
-      pool = C7;
-    }
-    else if (lvl.id === 3) {
-      pool = C10;
-    }
-    else {
-      pool = C12;
+    switch (lvl.id) {
+      case 1:
+        pool = C4;
+        break;
+
+      case 2:
+        pool = C7;
+        break;
+
+      case 3:
+        pool = C10;
+        break;
+
+      default:
+        pool = C12;
+        break;
     }
 
 
@@ -114,24 +135,21 @@ CATS.stroop = {
     /* ─────────────────────────────
        ЦВЕТ ШРИФТА
 
-       10% — цвет совпадает со словом
-       90% — цвет отличается
+       10% — совпадает со словом
+       90% — отличается
        ───────────────────────────── */
 
-    const same = Math.random() < 0.10;
+    const wordInkMatch = Math.random() < 0.10;
 
-    const ink = same
+    const ink = wordInkMatch
       ? word
       : pick(
-          pool.filter(color => color !== word)
+          pool.filter(c => c !== word)
         );
 
 
     /* ─────────────────────────────
-       ТИП ВОПРОСА
-
-       50% — определить цвет шрифта
-       50% — определить значение слова
+       ТИП ВОПРОСА — 50 / 50
        ───────────────────────────── */
 
     const askInk = Math.random() < 0.5;
@@ -140,87 +158,159 @@ CATS.stroop = {
       ? 'Каким <b>цветом</b> написано слово?'
       : 'Какой <b>цвет обозначает</b> это слово?';
 
+
+    /* ─────────────────────────────
+       ПРАВИЛЬНЫЙ ОТВЕТ
+       ───────────────────────────── */
+
     const answer = askInk
       ? ink
       : word;
 
 
     /* ─────────────────────────────
-       УРОВЕНЬ 3+
-       СЛУЧАЙНЫЙ ШРИФТ
+       ШРИФТ
+
+       1–2 уровни — обычный Arial
+       3–4 уровни — случайный шрифт
        ───────────────────────────── */
 
-    const fontFamily = lvl.id >= 3
+    const font = lvl.id >= 3
       ? pick(FONTS)
-      : 'Arial, sans-serif';
+      : {
+          family: 'Arial, sans-serif',
+          weight: '700'
+        };
 
 
     /* ─────────────────────────────
-       УРОВЕНЬ 4
-       ЦВЕТНОЙ ФОН-ДИСТРАКТОР
+       РАЗМЕР
        ───────────────────────────── */
 
-    let backgroundStyle = '';
+    const fontSize =
+      lvl.id === 1 ? 48 :
+      lvl.id === 2 ? 46 :
+      42;
+
+
+    /* ─────────────────────────────
+       УРОВЕНЬ 4 — ФОН
+       ───────────────────────────── */
+
+    let backgroundHtmlStart = '';
+    let backgroundHtmlEnd = '';
 
     if (lvl.id >= 4) {
 
       /*
-        В 10% случаев цвет фона
-        совпадает с правильным ответом.
+        В 10% случаев фон совпадает
+        с правильным ответом.
 
-        В остальных 90% — отличается.
+        В 90% — другой цвет.
       */
 
-      const bgSame = Math.random() < 0.10;
+      const backgroundMatchesAnswer =
+        Math.random() < 0.10;
 
-      const bgColorName = bgSame
+      const bgName = backgroundMatchesAnswer
         ? answer
         : pick(
-            pool.filter(color => color !== answer)
+            pool.filter(c => c !== answer)
           );
 
-      /*
-        Используем стандартный цвет,
-        но делаем фон прозрачным,
-        чтобы слово оставалось читаемым.
+      const bgColor = K[bgName];
 
-        "22" = небольшая прозрачность
-        в HEX8.
+
+      /*
+        Цветной внешний фон остаётся
+        хорошо заметным.
+
+        Белая полупрозрачная внутренняя
+        подложка нужна, чтобы красный,
+        жёлтый, голубой и другие цвета
+        текста всегда оставались читаемыми.
       */
 
-      backgroundStyle = `
-        background:${K[bgColorName]}22;
-        padding:18px 26px;
-        border-radius:12px;
+      backgroundHtmlStart = `
+        <div style="
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+
+          min-width:260px;
+          min-height:105px;
+
+          padding:16px 24px;
+
+          background-color:${bgColor} !important;
+
+          border-radius:14px;
+          box-sizing:border-box;
+        ">
+          <div style="
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+
+            padding:8px 14px;
+
+            background:rgba(255,255,255,0.82);
+
+            border-radius:8px;
+          ">
+      `;
+
+      backgroundHtmlEnd = `
+          </div>
+        </div>
       `;
     }
 
 
     /* ─────────────────────────────
-       РАЗМЕР СЛОВА
+       САМО СЛОВО
        ───────────────────────────── */
 
-    let fontSize = 48;
+    const wordHtml = `
+      <span style="
+        display:inline-block;
 
-    if (lvl.id === 2) {
-      fontSize = 46;
-    }
+        font-family:${font.family} !important;
+        font-weight:${font.weight} !important;
+        font-size:${fontSize}px !important;
 
-    if (lvl.id >= 3) {
-      fontSize = 42;
-    }
+        line-height:1.15;
+
+        color:${K[ink]} !important;
+      ">
+        ${word}
+      </span>
+    `;
+
+
+    /* ─────────────────────────────
+       VIS
+       ───────────────────────────── */
+
+    const vis = lvl.id >= 4
+      ? `
+          ${backgroundHtmlStart}
+            ${wordHtml}
+          ${backgroundHtmlEnd}
+        `
+      : wordHtml;
 
 
     /* ─────────────────────────────
        ВАРИАНТЫ ОТВЕТОВ
 
-       Всегда 4 варианта.
-       Правильный ответ гарантированно
-       присутствует.
+       Всегда 4 кнопки.
+       Правильный ответ обязательно
+       входит в варианты.
        ───────────────────────────── */
 
     const wrongAnswers = shu(
-      pool.filter(color => color !== answer)
+      pool.filter(c => c !== answer)
     ).slice(0, 3);
 
     const options = shu([
@@ -235,26 +325,8 @@ CATS.stroop = {
 
     return {
       q: question,
-
-      vis: `
-        <div style="
-          display:inline-block;
-          ${backgroundStyle}
-        ">
-          <span style="
-            display:inline-block;
-            font-size:${fontSize}px;
-            font-family:${fontFamily};
-            font-weight:700;
-            color:${K[ink]};
-          ">
-            ${word}
-          </span>
-        </div>
-      `,
-
+      vis: vis,
       ans: answer,
-
       opts: options
     };
   }
