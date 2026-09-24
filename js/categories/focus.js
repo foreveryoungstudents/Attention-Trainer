@@ -20,7 +20,7 @@ CATS.focus = {
     const gap = lvl.id >= 3 ? 8 : 10;
     return {
       q: `Сколько символов <b style="font-size:${fontSz}px">${tgt}</b>?`,
-      vis: `<div style="display:flex;flex-wrap:wrap;gap:${gap}px;justify-content:center;font-size:${fontSz}px;line-height:1">${
+      vis: `<div style="width:min(420px, 100%);margin:0 auto;display:flex;flex-wrap:wrap;gap:${gap}px;justify-content:center;font-size:${fontSz}px;line-height:1">${
         items.map(s => `<span style="color:var(--text)">${s}</span>`).join('')
       }</div>`,
       ans: String(cnt), opts: opts.map(String)
