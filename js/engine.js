@@ -2,6 +2,9 @@
    ENGINE — session control + UI shell
 ═══════════════════════════════════════ */
 
+/* Сколько карточек в сессии одной категории */
+const CARDS_PER_SESSION = 5;
+
 /* ─── Level picker render ─── */
 function renderLevelPicker() {
   document.getElementById('level-picker').innerHTML = LEVELS.map(l => `
@@ -31,9 +34,12 @@ function renderGrid() {
     }).join('')}</div>`).join('');
 }
 
-/* ─── Open single category ─── */
+/* ─── Open single category ───
+   Сессия из CARDS_PER_SESSION карточек одной и той же
+   категории — "Далее" переключает карточки внутри неё,
+   а не сразу выкидывает на экран результата. */
 function openCat(id) {
-  STATE.sessCats = [CATS[id]];
+  STATE.sessCats = Array(CARDS_PER_SESSION).fill(CATS[id]);
   STATE.sessIdx = 0; STATE.scOk = 0; STATE.scTot = 0;
   startSess();
 }
@@ -106,11 +112,15 @@ function nextTask() {
   }
 }
 
-/* ─── Summary screen ─── */
+/* ─── Summary screen ───
+   Шкала на 5 звёзд: заполненные звёзды пропорциональны
+   доле верных ответов (при CARDS_PER_SESSION = 5 это
+   ровно 1 звезда за каждую верную карточку). */
 function showSummary() {
   stopTimer();
   const pct = STATE.scTot ? Math.round(STATE.scOk / STATE.scTot * 100) : 0;
-  const stars = pct >= 80 ? '★★★' : pct >= 50 ? '★★☆' : '★☆☆';
+  const starsFilled = STATE.scTot ? Math.round(STATE.scOk / STATE.scTot * 5) : 0;
+  const stars = '★'.repeat(starsFilled) + '☆'.repeat(5 - starsFilled);
   const lvl = getLvl();
   document.getElementById('task-area').innerHTML = `
     <div class="summary">
