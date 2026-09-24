@@ -54,8 +54,9 @@ function renderDiff() {
   document.getElementById('task-area').innerHTML = `
     <div class="task-q" style="font-size:16px">Найди <b>${nDiff} ${nDiff===1?'отличие':nDiff<5?'отличия':'отличий'}</b> в правой картинке</div>
     <div class="diff-wrap">
-      <div><div class="diff-lbl">Оригинал</div><div class="diff-img" style="grid-template-columns:repeat(${sc.grid},42px)">${buildG(false)}</div></div>
-      <div><div class="diff-lbl">Изменённая</div><div class="diff-img" style="grid-template-columns:repeat(${sc.grid},42px)">${buildG(true)}</div></div>
+      <div><div class="diff-lbl">Оригинал</div><div class="diff-img" style="--diff-cols:${sc.grid}">${buildG(false)}</div></div>
+      <div class="diff-sep"></div>
+      <div><div class="diff-lbl">Изменённая</div><div class="diff-img" style="--diff-cols:${sc.grid}">${buildG(true)}</div></div>
     </div>
     <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">Найдено: 0 из ${nDiff}</div>`;
 }
