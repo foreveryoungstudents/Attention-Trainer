@@ -1,150 +1,208 @@
-/* ═══════════════════════════════════════
-   ENGINE — session control + UI shell
-═══════════════════════════════════════ */
+/* ── STROOP ── */
+CATS.stroop = {
+  name: 'Тест Струпа',
+  desc: 'Определи цвет или значение слова',
+  icon: '🎨',
+  bg: '#eeedfe',
+  fg: '#3c3489',
 
-/* Сколько карточек в сессии одной категории */
-const CARDS_PER_SESSION = 5;
+  gen() {
+    const lvl = getLvl();
 
-/* ─── Level picker render ─── */
-function renderLevelPicker() {
-  document.getElementById('level-picker').innerHTML = LEVELS.map(l => `
-    <button class="lvl-btn${STATE.level === l.id ? ' active' : ''}" onclick="setLevel(${l.id})">
-      <span class="lvl-emoji">${l.emoji}</span>
-      <span class="lvl-label">${l.label}</span>
-    </button>`).join('');
-}
 
-function setLevel(id) {
-  STATE.level = id;
-  renderLevelPicker();
-}
+    /* ─────────────────────────────
+       ЦВЕТА ПО УРОВНЯМ
 
-/* ─── Grid render ─── */
-function renderGrid() {
-  const root = document.getElementById('grid-root');
-  root.innerHTML = SECTIONS.map(sec => `
-    <div class="section-label">${sec.label}</div>
-    <div class="grid">${sec.cats.map(id => {
-      const c = CATS[id];
-      return `<div class="card" onclick="openCat('${id}')">
-        <div class="card-icon" style="background:${c.bg};color:${c.fg}">${c.icon}</div>
-        <div class="card-name">${c.name}</div>
-        <div class="card-desc">${c.desc}</div>
-      </div>`;
-    }).join('')}</div>`).join('');
-}
+       Единственная ось сложности —
+       размер палитры. Чем больше
+       цветов, тем труднее выбрать
+       из вариантов и тем ближе
+       могут быть похожие оттенки.
 
-/* ─── Open single category ───
-   Сессия из CARDS_PER_SESSION карточек одной и той же
-   категории — "Далее" переключает карточки внутри неё,
-   а не сразу выкидывает на экран результата. */
-function openCat(id) {
-  STATE.sessCats = Array(CARDS_PER_SESSION).fill(CATS[id]);
-  STATE.sessIdx = 0; STATE.scOk = 0; STATE.scTot = 0;
-  startSess();
-}
+       1 — 4 цвета
+       2 — 7 цветов
+       3 — 10 цветов
+       4 — 12 цветов
+       ───────────────────────────── */
 
-/* ─── Random set: ONE task from each section ─── */
-function startRandom() {
-  STATE.sessCats = shu(
-    SECTIONS.map(sec => CATS[pick(sec.cats)])
-  );
-  STATE.sessIdx = 0; STATE.scOk = 0; STATE.scTot = 0;
-  startSess();
-}
+    const C4 = [
+      'красный',
+      'синий',
+      'жёлтый',
+      'зелёный'
+    ];
 
-/* ─── Start session ─── */
-function startSess() {
-  STATE.curCat = STATE.sessCats[STATE.sessIdx];
-  document.getElementById('m-title').textContent = STATE.curCat.name;
-  setBadge(); updScore(); loadTask();
-  document.getElementById('overlay').classList.add('open');
-}
+    const C7 = [
+      ...C4,
+      'оранжевый',
+      'голубой',
+      'фиолетовый'
+    ];
 
-function setBadge() {
-  const b = document.getElementById('m-badge');
-  const total = STATE.sessCats.length;
-  b.textContent = total > 1 ? `${STATE.sessIdx + 1}/${total}` : STATE.curCat.name;
-  b.style.background = STATE.curCat.bg;
-  b.style.color = STATE.curCat.fg;
-}
+    const C10 = [
+      ...C7,
+      'розовый',
+      'коричневый',
+      'бордовый'
+    ];
 
-/* ─── Load next task ─── */
-function loadTask() {
-  STATE.answered = false;
-  STATE.scratch = {};
-  STATE.curTask = STATE.curCat.gen();
-  document.getElementById('sess-lbl').textContent =
-    STATE.sessCats.length > 1
-      ? `Задание ${STATE.sessIdx + 1} из ${STATE.sessCats.length}: ${STATE.curCat.name}`
-      : '';
-  document.getElementById('fb').style.display = 'none';
-  document.getElementById('nxt-btn').style.display = 'none';
-  document.getElementById('task-area').innerHTML = '';
+    const C12 = [
+      ...C10,
+      'серый',
+      'чёрный'
+    ];
 
-  const tp = STATE.curTask.type;
-  const noAutoTimer = ['schulte','memory','text_attn','diff','bihem_match','anagram','grid_memory'];
+    let pool;
 
-  if      (tp === 'schulte')     renderSchulte();
-  else if (tp === 'memory')      renderMem1();
-  else if (tp === 'text_attn')   renderTextAttn();
-  else if (tp === 'diff')        renderDiff();
-  else if (tp === 'bihem_match') renderBihemMatch();
-  else if (tp === 'anagram')     renderAnagram();
-  else if (tp === 'grid_memory') renderGridMemory();
-  else if (tp === 'speech_odd')  renderExc();
-  else if (tp === 'except')      renderExc();
-  else                           renderStd();
+    switch (lvl.id) {
+      case 1:
+        pool = C4;
+        break;
 
-  if (!noAutoTimer.includes(tp)) startTimer(35);
-  else stopTimer();
-}
+      case 2:
+        pool = C7;
+        break;
 
-/* ─── Next task / advance ─── */
-function nextTask() {
-  STATE.sessIdx++;
-  if (STATE.sessIdx < STATE.sessCats.length) {
-    STATE.curCat = STATE.sessCats[STATE.sessIdx];
-    document.getElementById('m-title').textContent = STATE.curCat.name;
-    setBadge(); loadTask();
-  } else {
-    showSummary();
+      case 3:
+        pool = C10;
+        break;
+
+      default:
+        pool = C12;
+        break;
+    }
+
+
+    /* ─────────────────────────────
+       СТАНДАРТНЫЕ ЦВЕТА
+       ───────────────────────────── */
+
+    const K = {
+      красный:     '#FF0000',
+      синий:       '#0000FF',
+      жёлтый:      '#FFFF00',
+      зелёный:     '#008000',
+
+      оранжевый:   '#FFA500',
+      голубой:     '#00BFFF',
+      фиолетовый:  '#800080',
+
+      розовый:     '#FFC0CB',
+      коричневый:  '#A52A2A',
+      бордовый:    '#800000',
+
+      серый:       '#808080',
+      чёрный:      '#000000'
+    };
+
+
+    /* ─────────────────────────────
+       СЛОВО
+       ───────────────────────────── */
+
+    const word = pick(pool);
+
+
+    /* ─────────────────────────────
+       ЦВЕТ ШРИФТА
+
+       10% — совпадает со словом
+       90% — отличается
+       ───────────────────────────── */
+
+    const wordInkMatch = Math.random() < 0.10;
+
+    const ink = wordInkMatch
+      ? word
+      : pick(
+          pool.filter(c => c !== word)
+        );
+
+
+    /* ─────────────────────────────
+       ТИП ВОПРОСА — 50 / 50
+       ───────────────────────────── */
+
+    const askInk = Math.random() < 0.5;
+
+    const question = askInk
+      ? 'Каким <b>цветом</b> написано слово?'
+      : 'Какой <b>цвет обозначает</b> это слово?';
+
+
+    /* ─────────────────────────────
+       ПРАВИЛЬНЫЙ ОТВЕТ
+       ───────────────────────────── */
+
+    const answer = askInk
+      ? ink
+      : word;
+
+
+    /* ─────────────────────────────
+       ОТОБРАЖЕНИЕ СЛОВА
+
+       Одинаково на всех уровнях
+       (как раньше выглядел уровень 2):
+       обычный жирный Arial, без смены
+       шрифта и без цветного фона.
+       Сложность даёт только palette
+       (больше цветов — труднее выбрать).
+       ───────────────────────────── */
+
+    const wordHtml = `
+      <span style="
+        display:inline-block;
+        font-family:Arial, sans-serif !important;
+        font-weight:700 !important;
+        font-size:46px !important;
+        line-height:1.15;
+        color:${K[ink]} !important;
+      ">
+        ${word}
+      </span>
+    `;
+
+    const vis = wordHtml;
+
+
+    /* ─────────────────────────────
+       ВАРИАНТЫ ОТВЕТОВ
+
+       Всегда 4 кнопки.
+       Гарантированно попадают:
+         - правильный ответ (answer)
+         - цвет чернил (ink) — самый заметный
+           "отвлекающий" вариант
+         - слово-значение (word) — второй
+           "острый" вариант
+       Остальное — случайные филлеры до 4 штук.
+       ───────────────────────────── */
+
+    const guaranteed = new Set([answer, ink, word]);
+
+    const fillers = shu(
+      pool.filter(c => !guaranteed.has(c))
+    );
+
+    let fi = 0;
+    while (guaranteed.size < 4 && fi < fillers.length) {
+      guaranteed.add(fillers[fi]);
+      fi++;
+    }
+
+    const options = shu([...guaranteed]);
+
+
+    /* ─────────────────────────────
+       РЕЗУЛЬТАТ
+       ───────────────────────────── */
+
+    return {
+      q: question,
+      vis: vis,
+      ans: answer,
+      opts: options
+    };
   }
-}
-
-/* ─── Summary screen ───
-   Шкала на 5 звёзд: заполненные звёзды пропорциональны
-   доле верных ответов (при CARDS_PER_SESSION = 5 это
-   ровно 1 звезда за каждую верную карточку). */
-function showSummary() {
-  stopTimer();
-  const pct = STATE.scTot ? Math.round(STATE.scOk / STATE.scTot * 100) : 0;
-  const starsFilled = STATE.scTot ? Math.round(STATE.scOk / STATE.scTot * 5) : 0;
-  const stars = '★'.repeat(starsFilled) + '☆'.repeat(5 - starsFilled);
-  const lvl = getLvl();
-  document.getElementById('task-area').innerHTML = `
-    <div class="summary">
-      <div class="summary-stars">${stars}</div>
-      <div class="summary-score">${STATE.scOk} из ${STATE.scTot}</div>
-      <div class="summary-sub">${pct}% верных ответов</div>
-      <div style="font-size:14px;color:var(--text3);margin-top:6px">Уровень: ${lvl.emoji} ${lvl.label}</div>
-      <button class="next-btn" style="margin-top:1.5rem" onclick="closeModal()">Завершить</button>
-    </div>`;
-  document.getElementById('fb').style.display = 'none';
-  document.getElementById('nxt-btn').style.display = 'none';
-}
-
-/* ─── Modal close ─── */
-function closeModal() {
-  stopTimer();
-  document.getElementById('overlay').classList.remove('open');
-}
-function overlayClick(e) {
-  if (e.target === document.getElementById('overlay')) closeModal();
-}
-
-/* ─── Boot ─── */
-document.addEventListener('DOMContentLoaded', () => {
-  renderLevelPicker();
-  renderGrid();
-});
+};
