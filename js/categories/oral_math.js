@@ -45,7 +45,7 @@ CATS.oral_math = {
     ).join('');
 
     return {
-      q: 'Реши пример <b>в уме</b> слева направо',
+      q: 'Реши цепочку действий в уме',
       vis: `<div class="math-chain">${chainHTML}<span class="math-op">=</span><span style="font-size:28px;color:var(--text3)">?</span></div>`,
       ans: String(ans), opts
     };
