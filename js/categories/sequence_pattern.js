@@ -6,14 +6,16 @@ CATS.sequence = {
     const lvl = getLvl();
     const len = lvl.seqLen[0] + r(lvl.seqLen[1] - lvl.seqLen[0] + 1);
     const hi = lvl.numRange[1];
+    const h2 = Math.max(2, Math.floor(hi / 2));    // всегда целое
+    const h10 = Math.max(1, Math.floor(hi / 10));  // всегда целое
 
     const fns = [
       // arithmetic
-      () => { const s=r(10)+1, d=r(hi/10)+2, pos=r(len-2)+2, n=[]; for(let i=0;i<len;i++) n.push(s+d*i); const a=n[pos]; n[pos]='?'; return {n,a}; },
-      // geometric (small ratio)
-      () => { const s=r(3)+2, rt=r(2)+2, pos=r(len-3)+1, n=[]; let v=s; for(let i=0;i<len;i++){n.push(v);v*=rt;} const a=n[pos]; n[pos]='?'; return {n,a}; },
-      // descending
-      () => { const s=r(hi/2)+hi/2, d=r(6)+2, pos=r(len-2)+1, n=[]; for(let i=0;i<len;i++) n.push(s-d*i); const a=n[pos]; n[pos]='?'; return {n,a}; },
+      () => { const s=r(10)+1, d=r(h10)+2, pos=r(len-2)+2, n=[]; for(let i=0;i<len;i++) n.push(s+d*i); const a=n[pos]; n[pos]='?'; return {n,a}; },
+      // geometric (при длинном ряде только ×2, чтобы числа не улетали)
+      () => { const s=r(3)+2, rt=len>5 ? 2 : r(2)+2, pos=r(len-3)+1, n=[]; let v=s; for(let i=0;i<len;i++){n.push(v);v*=rt;} const a=n[pos]; n[pos]='?'; return {n,a}; },
+      // descending (последний член гарантированно > 0)
+      () => { const d=r(6)+2, s=d*len + r(h2) + 1, pos=r(len-2)+1, n=[]; for(let i=0;i<len;i++) n.push(s-d*i); const a=n[pos]; n[pos]='?'; return {n,a}; },
       // fibonacci-like (lvl 3+)
       () => { const a0=r(4)+1, a1=r(4)+2, n=[a0,a1]; for(let i=2;i<len;i++) n.push(n[i-1]+n[i-2]); const pos=r(len-3)+2; const a=n[pos]; n[pos]='?'; return {n,a}; },
       // alternating step (lvl 4)
@@ -21,11 +23,19 @@ CATS.sequence = {
     ];
     const avail = lvl.id <= 2 ? fns.slice(0,3) : lvl.id === 3 ? fns.slice(0,4) : fns;
     const {n, a} = pick(avail)();
-    const wrong = [a+r(5)+1, a-r(5)-1, a*2].filter(x => x !== a && x > 0);
+
+    // ровно 3 уникальных неверных варианта, все > 0 и ≠ a
+    const wrong = new Set();
+    for (let g = 0; wrong.size < 3 && g < 60; g++) {
+      const w = pick([a + r(5) + 1, a - r(5) - 1, a * 2, a + r(10) + 1]);
+      if (w !== a && w > 0) wrong.add(w);
+    }
+    for (let k = 1; wrong.size < 3; k++) wrong.add(a + k);   // страховка
+
     return {
       q: 'Найди пропущенное число',
       vis: `<span style="font-size:22px;font-weight:600;letter-spacing:2px">${n.join(' — ')}</span>`,
-      ans: String(a), opts: shu([a, ...wrong.slice(0,3)]).map(String)
+      ans: String(a), opts: shu([a, ...wrong]).map(String)
     };
   }
 };
@@ -34,11 +44,12 @@ CATS.sequence = {
 const BG_T = ['c','s','t'];                       // круг, квадрат, треугольник
 const BG_RED = '#d85a30', BG_BLUE = '#378add', BG_INK = 'currentColor';
 const bgRnd = (a, b) => a + Math.random() * (b - a);
-const bgExt = s => s.r * (s.t === 't' ? 1.1 : 1); // радиус описанной окружности
+// радиус описанной окружности (квадрат: 0.88·r·√2 ≈ 1.25·r)
+const bgExt = s => s.r * (s.t === 't' ? 1.1 : s.t === 's' ? 1.25 : 1);
 const bgCorners = t => t === 'c' ? 0 : t === 's' ? 4 : 3;
 const bgHalfY = () => Math.random() < .5 ? bgRnd(16, 24) : bgRnd(40, 46);
 
-/* случайная раскладка без наложений; фигуры не стоят на осевых линиями карточки */
+/* случайная раскладка без наложений; фигуры не стоят на осевых линиях карточки */
 function bgScatter(specs) {
   const out = [];
   for (const sp of [...specs].sort((a, b) => b.r - a.r)) {
@@ -70,17 +81,20 @@ function bgCard(col) {
   }
   if (q < .26) {                                   // фигуры в одну линию
     const n = 3 + r(2), y = bgHalfY();
-    const xs = n === 3 ? [12,32,52] : [9,25,41,57], rs = n === 3 ? [6,9] : [6];
+    const xs = n === 3 ? [13,32,51] : [8,24,40,56], rs = n === 3 ? [6,7.5] : [5];
     return {k:'line', s: xs.map(x => ({t:T(), r:pick(rs), f:F(), c:pc(), x, y}))};
   }
   if (q < .38) {                                   // три фигуры: размеры растут / убывают
-    const rs = [4.5, 7.5, 10.5]; if (Math.random() < .5) rs.reverse();
-    const base = bgHalfY(); let x = 4; const s = [];
-    rs.forEach(rad => {
-      const t = T(), e = rad * (t === 't' ? 1.1 : 1);
-      x += e;
-      s.push({t, r:rad, f:F(), c:pc(), x, y: base + bgRnd(-3, 3)});
-      x += e + 3;
+    const rs = [4, 6.5, 9]; if (Math.random() < .5) rs.reverse();
+    const base = bgHalfY();
+    const items = rs.map(rad => { const t = T(); return {t, r:rad, e:bgExt({t, r:rad})}; });
+    const total = items.reduce((a, it) => a + 2 * it.e, 0) + 6;   // 2 зазора по 3
+    let x = (64 - total) / 2;                                     // центрируем по ширине
+    const s = items.map(it => {
+      x += it.e;
+      const o = {t:it.t, r:it.r, f:F(), c:pc(), x, y: base + bgRnd(-3, 3)};
+      x += it.e + 3;
+      return o;
     });
     return {k:'asc', s};
   }
@@ -93,7 +107,8 @@ function bgCard(col) {
   return {k:'rnd', s:[{t:'c', r:10, f:true, c:pc(), x:20, y:20}]};
 }
 
-function bgSvg(c) {
+/* axes — рисовать ли пунктирные осевые линии (для правил про «половины») */
+function bgSvg(c, axes) {
   const body = c.s.map(s => {
     const a = `fill="${s.f ? s.c : 'none'}" stroke="${s.c}" stroke-width="2.4" stroke-linejoin="round"`;
     const x = s.x.toFixed(1), y = s.y.toFixed(1);
@@ -105,7 +120,11 @@ function bgSvg(c) {
     const R = s.r * 1.1, dx = R * .866, dy = R / 2;
     return `<polygon points="${x},${(s.y-R).toFixed(1)} ${(s.x+dx).toFixed(1)},${(s.y+dy).toFixed(1)} ${(s.x-dx).toFixed(1)},${(s.y+dy).toFixed(1)}" ${a}/>`;
   }).join('');
-  return `<svg viewBox="0 0 64 64" style="width:100%;height:auto;display:block;border:1px solid rgba(128,128,128,.3);border-radius:6px">${body}</svg>`;
+  const grid = axes
+    ? `<line x1="32" y1="0" x2="32" y2="64" stroke="rgba(128,128,128,.35)" stroke-width="1" stroke-dasharray="2 3"/>` +
+      `<line x1="0" y1="32" x2="64" y2="32" stroke="rgba(128,128,128,.35)" stroke-width="1" stroke-dasharray="2 3"/>`
+    : '';
+  return `<svg viewBox="0 0 64 64" style="width:100%;height:auto;display:block;border:1px solid rgba(128,128,128,.3);border-radius:6px">${grid}${body}</svg>`;
 }
 
 /* правила: t(card) → true, если правило выполняется */
@@ -126,10 +145,10 @@ const BG_RULES = [
   {n:'Есть большая фигура',          from:2, to:4, t:c => c.s.some(s => s.r >= 15)},
   {n:'Все фигуры одного размера',    from:2, to:4, t:c => c.s.every(s => s.r === c.s[0].r)},
   {n:'Все фигуры одного вида',       from:2, to:4, t:c => c.s.every(s => s.t === c.s[0].t)},
-  {n:'Все фигуры в верхней половине',from:2, to:3, t:c => c.s.every(s => s.y < 32)},
-  {n:'Все фигуры в нижней половине', from:2, to:3, t:c => c.s.every(s => s.y > 32)},
-  {n:'Все фигуры в левой половине',  from:2, to:3, t:c => c.s.every(s => s.x < 32)},
-  {n:'Все фигуры в правой половине', from:2, to:3, t:c => c.s.every(s => s.x > 32)},
+  {n:'Все фигуры в верхней половине', from:2, to:3, ax:true, t:c => c.s.every(s => s.y + bgExt(s) < 32)},
+  {n:'Все фигуры в нижней половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.y - bgExt(s) > 32)},
+  {n:'Все фигуры в левой половине',   from:2, to:3, ax:true, t:c => c.s.every(s => s.x + bgExt(s) < 32)},
+  {n:'Все фигуры в правой половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.x - bgExt(s) > 32)},
   // — уровень 3–4: отношения между фигурами —
   {n:'Одна фигура внутри другой',    from:3, to:4, t:c => c.k === 'nest'},
   {n:'Закрашенных больше, чем контурных', from:3, to:4,
@@ -174,6 +193,8 @@ CATS.bongard = {
   gen() {
     const L = getLvl().id;
     const rule = pick(BG_RULES.filter(x => L >= x.from && L <= x.to));
+    const axes = !!rule.ax;
+    const svg = c => bgSvg(c, axes);   // обёртка: map не должен передавать индекс вторым аргументом
 
     // в какой группе (А или Б) правило выполняется — случайно
     const gP = pick(['А','Б']), gN = gP === 'А' ? 'Б' : 'А';
@@ -184,7 +205,7 @@ CATS.bongard = {
     const panel = (lab, cards) =>
       `<div style="flex:1 1 150px;min-width:0">
          <div style="font-weight:700;font-size:15px;margin-bottom:4px;text-align:center">${lab}</div>
-         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${cards.map(bgSvg).join('')}</div>
+         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${cards.map(svg).join('')}</div>
        </div>`;
 
     const classify = Math.random() < .35;
@@ -193,14 +214,16 @@ CATS.bongard = {
     if (classify) {
       const isPos = Math.random() < .5;
       extra = `<div style="width:84px;margin:12px auto 0;text-align:center">
-                 <div style="font-weight:700;margin-bottom:3px">?</div>${bgSvg(bgSample(rule, isPos))}</div>`;
+                 <div style="font-weight:700;margin-bottom:3px">?</div>${svg(bgSample(rule, isPos))}</div>`;
       q = 'К какой группе относится карточка <b>?</b>';
       ans = isPos ? gP : gN;
       opts = ['А','Б'];
     } else {
-      // варианты: верное правило + ложные (одна из ловушек — верна для чужой группы)
-      const pool = shu(BG_RULES.filter(x => x !== rule && (!x.col || rule.col) && !P.every(x.t)));
-      const trap = pool.find(x => N.every(x.t));
+      // ложные варианты: не сложнее уровня+1, не выполняются хотя бы для одной карточки группы
+      // (одна из ловушек — верна для чужой группы)
+      const pool = shu(BG_RULES.filter(x =>
+        x !== rule && x.from <= L + 1 && (!x.col || rule.col) && !P.every(c => x.t(c))));
+      const trap = pool.find(x => N.every(c => x.t(c)));
       const dist = [trap, ...pool.filter(x => x !== trap)].filter(Boolean).slice(0, 3);
       q = `Что объединяет карточки группы <b>${gP}</b> (и не подходит группе <b>${gN}</b>)?`;
       ans = rule.n;
