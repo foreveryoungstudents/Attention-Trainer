@@ -96,7 +96,7 @@ function loadTask() {
   else if (tp === 'except')      renderExc();
   else                           renderStd();
 
-  if (!noAutoTimer.includes(tp)) startTimer(35);
+  if (!noAutoTimer.includes(tp)) startTimer(STATE.curTask.timer || 35);
   else stopTimer();
 }
 

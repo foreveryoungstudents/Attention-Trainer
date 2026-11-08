@@ -3,40 +3,51 @@ CATS.oral_math = {
   name: 'Устный счёт', desc: 'Реши цепочку действий в уме',
   icon: '🧮', bg: '#faeeda', fg: '#633806',
   gen() {
-    const lvl = getLvl();
-    let chain, ans;
+    const lvl = getLvl();   // lvl.id (1–4) и lvl.timerMul
+    const rnd = (lo, hi) => lo + r(hi - lo + 1);   // целое от lo до hi включительно
 
-    if (lvl.id === 1) {
-      // 2 operations, small numbers, only + –
-      const a = r(15) + 3, b = r(10) + 2, c = r(8) + 1;
-      const op1 = pick(['+', '-']), op2 = pick(['+', '-']);
-      const v1 = op1 === '+' ? a + b : a - b;
-      ans = op2 === '+' ? v1 + c : v1 - c;
-      chain = [a, op1, b, op2, c];
-    } else if (lvl.id === 2) {
-      // 2–3 operations with ×
-      const a = r(10) + 2, b = r(5) + 2, c = r(10) + 1;
-      const op2 = pick(['+', '-']);
-      const v1 = a * b;
-      ans = op2 === '+' ? v1 + c : v1 - c;
-      chain = [a, '×', b, op2, c];
-    } else if (lvl.id === 3) {
-      // 3 operations, ×, ÷ possible
-      const a = r(8) + 3, b = r(4) + 2, c = r(6) + 2, d = r(8) + 1;
-      const ops = [pick(['+','-']), pick(['+','-'])];
-      const v1 = a * b, v2 = ops[0] === '+' ? v1 + c : v1 - c;
-      ans = ops[1] === '+' ? v2 + d : v2 - d;
-      chain = [a, '×', b, ops[0], c, ops[1], d];
-    } else {
-      // Level 4: 3–4 ops, large numbers, two-step multiplications
-      const a = r(10) + 5, b = r(5) + 3, c = r(7) + 2, d = r(6) + 2, e = r(10) + 3;
-      const v1 = a * b, v2 = v1 - c * d;
-      ans = v2 + e;
-      chain = [a, '×', b, '–', c, '×', d, '+', e];
+    /* «Слагаемое» — кусок выражения, который считается раньше + и −.
+       tokens — что показать на экране, v — чему он равен. */
+    const num = (lo, hi) => { const a = rnd(lo, hi); return { tokens: [a], v: a }; };
+    const mul = (aLo, aHi, bLo, bHi) => {
+      const a = rnd(aLo, aHi), b = rnd(bLo, bHi);
+      return { tokens: [a, '×', b], v: a * b };
+    };
+    // Деление без остатка: сначала выбираем делитель и результат,
+    // а делимое получаем умножением (оно всегда двузначное).
+    const div = (bLo, bHi) => {
+      const b = rnd(bLo, bHi);
+      const q = rnd(Math.ceil(10 / b), Math.floor(99 / b));
+      return { tokens: [b * q, '÷', b], v: q };
+    };
+
+    /* Состав выражения по уровням */
+    const makers = {
+      1: () => [num(10, 99), num(10, 99), num(2, 9)],        // 47 + 28 - 6
+      2: () => [mul(10, 40, 2, 4), num(10, 99)],             // 24 × 3 + 57
+      3: () => [mul(10, 99, 2, 5), div(2, 9)],               // 64 × 3 - 12 ÷ 3
+      4: () => [mul(10, 99, 3, 9), div(2, 9), mul(10, 30, 2, 5)],
+    };
+
+    // Повторяем, пока ответ не окажется неотрицательным
+    let terms, signs, ans;
+    do {
+      terms = shu(makers[lvl.id]());
+      signs = terms.slice(1).map(() => pick(['+', '-']));
+      ans = terms[0].v;
+      signs.forEach((s, i) => { ans += s === '+' ? terms[i + 1].v : -terms[i + 1].v; });
+    } while (ans < 0);
+
+    const chain = [...terms[0].tokens];
+    signs.forEach((s, i) => chain.push(s, ...terms[i + 1].tokens));
+
+    // Неверные варианты: добираем случайные, пока не наберётся 3 разных
+    const wrong = new Set();
+    while (wrong.size < 3) {
+      const w = ans + r(11) - 5;                 // от ans-5 до ans+5
+      if (w !== ans && w >= 0) wrong.add(String(w));
     }
-
-    const wrong = [ans + r(5)+1, ans - r(5)-1, ans + r(10)+5].filter(x => x !== ans);
-    const opts = shu([ans, ...wrong.slice(0,3)]).map(String);
+    const opts = shu([String(ans), ...wrong]);
 
     const chainHTML = chain.map(x =>
       typeof x === 'string' && ['+','–','-','×','÷'].includes(x)
@@ -44,10 +55,15 @@ CATS.oral_math = {
         : `<span class="math-num">${x}</span>`
     ).join('');
 
+    /* Время на задачу в ИТОГОВЫХ секундах (для уровней, которых тут нет — стандартное).
+       Движок умножает базовое время на timerMul уровня, поэтому делим на него. */
+    const SECONDS = { 4: 45 };
+    const timer = SECONDS[lvl.id] ? SECONDS[lvl.id] / lvl.timerMul : undefined;
+
     return {
       q: 'Реши цепочку действий в уме',
       vis: `<div class="math-chain">${chainHTML}<span class="math-op">=</span><span style="font-size:28px;color:var(--text3)">?</span></div>`,
-      ans: String(ans), opts
+      ans: String(ans), opts, timer
     };
   }
 };
