@@ -31,7 +31,7 @@ CATS.grid_search = {
     return {
       q: `Сколько раз встречается <b style="font-size:22px">${tgt}</b>?`,
       vis: `<div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:8px;font-family:monospace;font-size:${lvl.id>=3?22:26}px">${
-        grid.map(c => `<span style="color:#000">${c}</span>`).join('')
+        grid.map(c => `<span style="color:var(--text)">${c}</span>`).join('')
       }</div>`,
       ans: String(cnt), opts: opts.map(String)
     };
