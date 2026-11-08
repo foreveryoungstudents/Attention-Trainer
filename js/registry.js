@@ -10,7 +10,7 @@ const SECTIONS = [
   { label: 'Память и последовательности', cats: ['memory','sequence','pattern'] },
   { label: 'Межполушарное взаимодействие',cats: ['bihem_hand','bihem_match','bihem_seq'] },
   { label: 'Речь и словесное внимание',   cats: ['text_attn','anagram','speech_odd'] },
-  { label: 'Мышление и логика',           cats: ['analogy','except','matrix_logic'] },
+  { label: 'Мышление и логика',           cats: ['analogy','except','matrix_logic','bongard'] },
 ];
 
 /* CATS is populated by each category file */
