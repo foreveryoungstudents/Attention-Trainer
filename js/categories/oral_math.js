@@ -3,7 +3,7 @@ CATS.oral_math = {
   name: 'Устный счёт', desc: 'Реши цепочку действий в уме',
   icon: '🧮', bg: '#faeeda', fg: '#633806',
   gen() {
-    const lvl = getLvl();
+    const lvl = getLvl();   // lvl.id (1–4) и lvl.timerMul
     const rnd = (lo, hi) => lo + r(hi - lo + 1);   // целое от lo до hi включительно
 
     /* «Слагаемое» — кусок выражения, который считается раньше + и −.
@@ -55,10 +55,15 @@ CATS.oral_math = {
         : `<span class="math-num">${x}</span>`
     ).join('');
 
+    /* Время на задачу в ИТОГОВЫХ секундах (для уровней, которых тут нет — стандартное).
+       Движок умножает базовое время на timerMul уровня, поэтому делим на него. */
+    const SECONDS = { 4: 45 };
+    const timer = SECONDS[lvl.id] ? SECONDS[lvl.id] / lvl.timerMul : undefined;
+
     return {
       q: 'Реши цепочку действий в уме',
       vis: `<div class="math-chain">${chainHTML}<span class="math-op">=</span><span style="font-size:28px;color:var(--text3)">?</span></div>`,
-      ans: String(ans), opts
+      ans: String(ans), opts, timer
     };
   }
 };
