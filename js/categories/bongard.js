@@ -5,6 +5,8 @@ const bgRnd = (a, b) => a + Math.random() * (b - a);
 // радиус описанной окружности (квадрат: 0.88·r·√2 ≈ 1.25·r)
 const bgExt = s => s.r * (s.t === 't' ? 1.1 : s.t === 's' ? 1.25 : 1);
 const bgCorners = t => t === 'c' ? 0 : t === 's' ? 4 : 3;
+const bgLc = t => t[0].toLowerCase() + t.slice(1);   // «Есть треугольник» → «есть треугольник»
+const BG_M = 1.5;   // запас на толщину контура, чтобы фигура не касалась осевой линии
 const bgHalfY = () => Math.random() < .5 ? bgRnd(16, 24) : bgRnd(40, 46);
 
 /* случайная раскладка без наложений; фигуры не стоят на осевых линиях карточки */
@@ -96,17 +98,17 @@ const BG_RULES = [
   {n:'Все фигуры — круги',           from:1, to:3, t:c => c.s.every(s => s.t === 'c')},
   {n:'Есть треугольник',             from:1, to:3, t:c => c.s.some(s => s.t === 't')},
   {n:'Нет ни одного круга',          from:2, to:4, t:c => c.s.every(s => s.t !== 'c')},
-  {n:'Все фигуры красные',           from:1, to:2, col:true, t:c => c.s.every(s => s.c === BG_RED)},
-  {n:'Есть синяя фигура',            from:1, to:2, col:true, t:c => c.s.some(s => s.c === BG_BLUE)},
+  {n:'Все фигуры красные',           from:1, to:2, col:true, opp:'Есть синяя фигура', t:c => c.s.every(s => s.c === BG_RED)},
+  {n:'Есть синяя фигура',            from:1, to:2, col:true, opp:'Все фигуры красные', t:c => c.s.some(s => s.c === BG_BLUE)},
   // — уровень 2–3: размер и положение —
   {n:'Все фигуры маленькие',         from:2, to:3, t:c => c.s.every(s => s.r <= 6)},
   {n:'Есть большая фигура',          from:2, to:4, t:c => c.s.some(s => s.r >= 15)},
   {n:'Все фигуры одного размера',    from:2, to:4, t:c => c.s.every(s => s.r === c.s[0].r)},
   {n:'Все фигуры одного вида',       from:2, to:4, t:c => c.s.every(s => s.t === c.s[0].t)},
-  {n:'Все фигуры в верхней половине', from:2, to:3, ax:true, t:c => c.s.every(s => s.y + bgExt(s) < 32)},
-  {n:'Все фигуры в нижней половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.y - bgExt(s) > 32)},
-  {n:'Все фигуры в левой половине',   from:2, to:3, ax:true, t:c => c.s.every(s => s.x + bgExt(s) < 32)},
-  {n:'Все фигуры в правой половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.x - bgExt(s) > 32)},
+  {n:'Все фигуры в верхней половине', from:2, to:3, ax:true, t:c => c.s.every(s => s.y + bgExt(s) + BG_M < 32)},
+  {n:'Все фигуры в нижней половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.y - bgExt(s) - BG_M > 32)},
+  {n:'Все фигуры в левой половине',   from:2, to:3, ax:true, t:c => c.s.every(s => s.x + bgExt(s) + BG_M < 32)},
+  {n:'Все фигуры в правой половине',  from:2, to:3, ax:true, t:c => c.s.every(s => s.x - bgExt(s) - BG_M > 32)},
   // — уровень 3–4: отношения между фигурами —
   {n:'Одна фигура внутри другой',    from:3, to:4, t:c => c.k === 'nest'},
   {n:'Закрашенных больше, чем контурных', from:3, to:4,
@@ -156,8 +158,17 @@ CATS.bongard = {
 
     // в какой группе (А или Б) правило выполняется — случайно
     const gP = pick(['А','Б']), gN = gP === 'А' ? 'Б' : 'А';
-    const P = Array.from({length:6}, () => bgSample(rule, true));
-    const N = Array.from({length:6}, () => bgSample(rule, false));
+    // «Ложный след»: другое правило, которое выполняется во ВСЕХ карточках «неподходящей» группы,
+    // но не во всех карточках «подходящей» (как «в каждой карточке А есть треугольник»).
+    // Такие наборы перегенерируем, чтобы не сбивать с толку.
+    const falseLead = (P, N) => BG_RULES.some(x =>
+      x !== rule && x.n !== rule.opp && (!x.col || rule.col) && N.every(c => x.t(c)) && !P.every(c => x.t(c)));   // opp — то же правило, но «наоборот»
+    let P, N;
+    for (let k = 0; k < 60; k++) {
+      P = Array.from({length:6}, () => bgSample(rule, true));
+      N = Array.from({length:6}, () => bgSample(rule, false));
+      if (!falseLead(P, N)) break;
+    }
     const [A, B] = gP === 'А' ? [P, N] : [N, P];
 
     const panel = (lab, cards) =>
@@ -167,7 +178,7 @@ CATS.bongard = {
        </div>`;
 
     const classify = Math.random() < .35;
-    let extra = '', q, ans, opts;
+    let extra = '', q, ans, opts, explain;
 
     if (classify) {
       const isPos = Math.random() < .5;
@@ -176,6 +187,8 @@ CATS.bongard = {
       q = 'К какой группе относится карточка <b>?</b>';
       ans = isPos ? gP : gN;
       opts = ['А','Б'];
+      explain = `Правило: ${bgLc(rule.n)}. Оно выполняется в каждой карточке группы ${gP} и ни в одной карточке группы ${gN}. ` +
+                `У карточки «?» оно ${isPos ? 'выполняется' : 'не выполняется'}, поэтому она из группы ${ans}.`;
     } else {
       // ложные варианты: не сложнее уровня+1, не выполняются хотя бы для одной карточки группы
       // (одна из ловушек — верна для чужой группы)
@@ -186,6 +199,7 @@ CATS.bongard = {
       q = `Что объединяет карточки группы <b>${gP}</b> (и не подходит группе <b>${gN}</b>)?`;
       ans = rule.n;
       opts = shu([rule.n, ...dist.map(x => x.n)]);
+      explain = `Правило: ${bgLc(rule.n)}. Оно выполняется в каждой карточке группы ${gP} и ни в одной карточке группы ${gN}.`;
     }
 
     /* Время на задачу в итоговых секундах (движок умножает базовое на timerMul уровня,
@@ -195,8 +209,9 @@ CATS.bongard = {
 
     return {
       q,
-      vis: `<div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
-      ans, opts, timer
+      vis: `<div style="font-size:13px;color:var(--text3);line-height:1.4;margin-bottom:8px">Правило выполняется в каждой карточке одной группы и ни в одной карточке другой.</div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
+      ans, opts, timer, explain
     };
   }
 };
