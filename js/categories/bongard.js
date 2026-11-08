@@ -10,14 +10,15 @@ const BG_M = 1.5;   // запас на толщину контура, чтобы
 const bgHalfY = () => Math.random() < .5 ? bgRnd(16, 24) : bgRnd(40, 46);
 
 /* случайная раскладка без наложений; фигуры не стоят на осевых линиях карточки */
-function bgScatter(specs) {
+function bgScatter(specs, axes) {
   const out = [];
   for (const sp of [...specs].sort((a, b) => b.r - a.r)) {
     const e = bgExt(sp);
     let ok = false;
     for (let k = 0; k < 80 && !ok; k++) {
       const x = bgRnd(e + 3, 61 - e), y = bgRnd(e + 3, 61 - e);
-      if (Math.abs(x - 32) < 5 || Math.abs(y - 32) < 5) continue;
+      const gap = axes ? e + BG_M : 5;    // с осями: фигура не должна задевать ни одну линию
+      if (Math.abs(x - 32) < gap || Math.abs(y - 32) < gap) continue;
       if (out.every(o => Math.hypot(o.x - x, o.y - y) >= bgExt(o) + e + 3)) {
         out.push({...sp, x, y}); ok = true;
       }
@@ -28,40 +29,48 @@ function bgScatter(specs) {
 }
 
 /* одна случайная карточка; col — использовать ли цвета */
-function bgCard(col) {
+function bgCard(col, axes) {
   const pc = () => col ? (Math.random() < .5 ? BG_RED : BG_BLUE) : BG_INK;
   const T = () => BG_T[r(3)], F = () => Math.random() < .5;
-  const q = Math.random();
+  const q = axes ? 1 : Math.random();   // axes: пропускаем особые раскладки
+
+  /* Размеры только из чётко различимых классов: маленький (4–6), средний (10), большой (15+).
+     Промежуточных радиусов (7, 8, 9) нет, иначе «маленькая» фигура от «не маленькой» не отличается на глаз. */
+
+  // ряд фигур слева направо с заданными радиусами; jit — разброс по вертикали
+  const row = (rads, y, jit) => {
+    const items = rads.map(rad => { const t = T(); return {t, r:rad, e:bgExt({t, r:rad})}; });
+    const total = items.reduce((a, it) => a + 2 * it.e, 0) + 3 * (items.length - 1);
+    let x = (64 - total) / 2;                                     // центрируем по ширине
+    return items.map(it => {
+      x += it.e;
+      // с разбросом по вертикали держим фигуру целиком внутри карточки
+      const yy = jit ? Math.min(64 - it.e - 2.5, Math.max(it.e + 2.5, y + bgRnd(-jit, jit))) : y;
+      const o = {t:it.t, r:it.r, f:F(), c:pc(), x, y: yy};
+      x += it.e + 3;
+      return o;
+    });
+  };
 
   if (q < .12) {                                   // одна фигура внутри другой
     const c1 = pc();
     return {k:'nest', s:[
       {t:T(), r:22, f:false, c:c1, x:32, y:32},
-      {t:T(), r:8,  f:F(),   c:col ? pc() : c1, x:32, y:32}]};
+      {t:T(), r:6,  f:F(),   c:col ? pc() : c1, x:32, y:32}]};
   }
   if (q < .26) {                                   // фигуры в одну линию
     const n = 3 + r(2), y = bgHalfY();
-    const xs = n === 3 ? [13,32,51] : [8,24,40,56], rs = n === 3 ? [6,7.5] : [5];
-    return {k:'line', s: xs.map(x => ({t:T(), r:pick(rs), f:F(), c:pc(), x, y}))};
+    const rads = n === 3 ? shu(Math.random() < .5 ? [6,6,10] : [6,6,6]) : [5,5,5,5];
+    return {k:'line', s: row(rads, y, 0)};
   }
   if (q < .38) {                                   // три фигуры: размеры растут / убывают
-    const rs = [4, 6.5, 9]; if (Math.random() < .5) rs.reverse();
-    const base = bgHalfY();
-    const items = rs.map(rad => { const t = T(); return {t, r:rad, e:bgExt({t, r:rad})}; });
-    const total = items.reduce((a, it) => a + 2 * it.e, 0) + 6;   // 2 зазора по 3
-    let x = (64 - total) / 2;                                     // центрируем по ширине
-    const s = items.map(it => {
-      x += it.e;
-      const o = {t:it.t, r:it.r, f:F(), c:pc(), x, y: base + bgRnd(-3, 3)};
-      x += it.e + 3;
-      return o;
-    });
-    return {k:'asc', s};
+    const rads = [4, 6, 10]; if (Math.random() < .5) rads.reverse();
+    return {k:'asc', s: row(rads, bgHalfY(), 3)};
   }
   for (let tr = 0; tr < 30; tr++) {                // обычная случайная карточка
     const n = pick([1,1,2,2,2,3,3,3,4]);
     const rs = n <= 2 ? [6,10,15] : n === 3 ? [6,10] : [6,6,10];
-    const placed = bgScatter(Array.from({length:n}, () => ({t:T(), r:pick(rs), f:F(), c:pc()})));
+    const placed = bgScatter(Array.from({length:n}, () => ({t:T(), r:pick(rs), f:F(), c:pc()})), axes);
     if (placed) return {k:'rnd', s:placed};
   }
   return {k:'rnd', s:[{t:'c', r:10, f:true, c:pc(), x:20, y:20}]};
@@ -86,6 +95,10 @@ function bgSvg(c, axes) {
     : '';
   return `<svg viewBox="0 0 64 64" style="width:100%;height:auto;display:block;border:1px solid rgba(128,128,128,.3);border-radius:6px">${grid}${body}</svg>`;
 }
+
+/* «Подпись» карточки: какие фигуры в ней есть (вид, размер, заливка, цвет) без учёта положения.
+   Нужна, чтобы карточка «?» не повторяла уже показанную: иначе ответ находится сравнением, а не анализом. */
+const bgSig = c => c.s.map(s => s.t + s.r + (s.f ? 'f' : 'o') + s.c).sort().join('|');
 
 /* правила: t(card) → true, если правило выполняется */
 const BG_RULES = [
@@ -141,7 +154,7 @@ const BG_RULES = [
 function bgSample(rule, want) {
   let c;
   for (let i = 0; i < 500; i++) {
-    c = bgCard(!!rule.col);
+    c = bgCard(!!rule.col, !!rule.ax);
     if (rule.t(c) === want) return c;
   }
   return c;
@@ -182,8 +195,15 @@ CATS.bongard = {
 
     if (classify) {
       const isPos = Math.random() < .5;
+      // карточка «?» — новая: такой же по составу фигур среди показанных нет
+      const seen = new Set([...P, ...N].map(bgSig));
+      let qc;
+      for (let k = 0; k < 300; k++) {
+        qc = bgSample(rule, isPos);
+        if (!seen.has(bgSig(qc))) break;
+      }
       extra = `<div style="width:84px;margin:12px auto 0;text-align:center">
-                 <div style="font-weight:700;margin-bottom:3px">?</div>${svg(bgSample(rule, isPos))}</div>`;
+                 <div style="font-weight:700;margin-bottom:3px">?</div>${svg(qc)}</div>`;
       q = 'К какой группе относится карточка <b>?</b>';
       ans = isPos ? gP : gN;
       opts = ['А','Б'];
@@ -209,8 +229,7 @@ CATS.bongard = {
 
     return {
       q,
-      vis: `<div style="font-size:13px;color:var(--text3);line-height:1.4;margin-bottom:8px">Правило выполняется в каждой карточке одной группы и ни в одной карточке другой.</div>
-            <div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
+      vis: `<div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
       ans, opts, timer, explain
     };
   }
