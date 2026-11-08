@@ -20,20 +20,18 @@
   --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
 }
 
-:root { color-scheme: light dark; }
-
-/* ─── Dark theme: follows the browser/OS setting ─── */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161513; --surface: #201f1c; --surface2: #2a2926;
-    --border: #3a3935; --border2: #4d4b45;
-    --text: #f2f0ea; --text2: #b5b2a9; --text3: #8a877f;
-    --green: #a9d36f; --green-bg: #1f2d12; --green-bd: #639922;
-    --red:   #f4a8a8; --red-bg:   #341616; --red-bd:   #a32d2d;
-    --blue:  #9cc9f2; --blue-bg:  #10263b; --blue-bd:  #378add;
-    --amber: #f0c27a; --amber-bg: #33250f; --amber-bd: #ba7517;
-    --shadow: 0 1px 3px rgba(0,0,0,.4);
-  }
+/* ─── Dark theme: атрибут data-theme ставит js/theme.js ─── */
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161513; --surface: #201f1c; --surface2: #2a2926;
+  --border: #3a3935; --border2: #4d4b45;
+  --text: #f2f0ea; --text2: #b5b2a9; --text3: #8a877f;
+  --green: #a9d36f; --green-bg: #1f2d12; --green-bd: #639922;
+  --red:   #f4a8a8; --red-bg:   #341616; --red-bd:   #a32d2d;
+  --blue:  #9cc9f2; --blue-bg:  #10263b; --blue-bd:  #378add;
+  --amber: #f0c27a; --amber-bg: #33250f; --amber-bd: #ba7517;
+  --shadow: 0 1px 3px rgba(0,0,0,.4);
 }
 
 
@@ -50,6 +48,11 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .rand-btn { display: flex; align-items: center; gap: 8px; background: var(--text); color: var(--bg); border: none; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
 .rand-btn:hover { opacity: .85; }
 .rand-btn svg { width: 18px; height: 18px; stroke: var(--bg); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* ─── Theme toggle ─── */
+.header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.theme-btn { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 12px 18px; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; white-space: nowrap; font-family: inherit; transition: all .15s; }
+.theme-btn:hover { border-color: var(--text3); color: var(--text); }
 
 /* ─── Level picker ─── */
 .level-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.75rem; align-items: center; }

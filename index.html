@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Тренажёр внимания</title>
   <link rel="stylesheet" href="css/style.css">
+  <script src="js/theme.js"></script>
 </head>
 <body>
 
@@ -16,10 +17,13 @@
       <h1>Тренажёр внимания</h1>
       <p>21 категория · 4 уровня сложности</p>
     </div>
-    <button class="rand-btn" onclick="startRandom()">
-      <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
-      Случайный набор
-    </button>
+    <div class="header-actions">
+      <button class="theme-btn" id="theme-btn" type="button">🖥️ Авто</button>
+      <button class="rand-btn" onclick="startRandom()">
+        <svg viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+        Случайный набор
+      </button>
+    </div>
   </div>
 
   <!-- Level picker -->
