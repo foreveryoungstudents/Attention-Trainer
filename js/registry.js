@@ -9,7 +9,7 @@ const SECTIONS = [
   { label: 'Таблицы Шульте',              cats: ['schulte5','schulte7','schulte_chaos'] },
   { label: 'Память',                      cats: ['grid_memory', 'memory'] },
   { label: 'Последовательности',          cats: ['pattern', 'matrix_logic', 'bongard'] }, 
-  { label: 'Математика',                  cats: ['oral_math','sequence','pattern'] },
+  { label: 'Математика',                  cats: ['oral_math','sequence'] },
   { label: 'Межполушарное взаимодействие',cats: ['stroop','bihem_hand','bihem_match','bihem_seq'] },
   { label: 'Речь и словесное внимание',   cats: ['text_attn','anagram','speech_odd'] },
   { label: 'Мышление и логика',           cats: ['analogy','except'] },
