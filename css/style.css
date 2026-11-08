@@ -20,6 +20,23 @@
   --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
 }
 
+:root { color-scheme: light dark; }
+
+/* ─── Dark theme: follows the browser/OS setting ─── */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161513; --surface: #201f1c; --surface2: #2a2926;
+    --border: #3a3935; --border2: #4d4b45;
+    --text: #f2f0ea; --text2: #b5b2a9; --text3: #8a877f;
+    --green: #a9d36f; --green-bg: #1f2d12; --green-bd: #639922;
+    --red:   #f4a8a8; --red-bg:   #341616; --red-bd:   #a32d2d;
+    --blue:  #9cc9f2; --blue-bg:  #10263b; --blue-bd:  #378add;
+    --amber: #f0c27a; --amber-bg: #33250f; --amber-bd: #ba7517;
+    --shadow: 0 1px 3px rgba(0,0,0,.4);
+  }
+}
+
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 
@@ -30,16 +47,16 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
 .header-left h1 { font-size: 28px; font-weight: 600; }
 .header-left p { font-size: 14px; color: var(--text2); margin-top: 4px; }
-.rand-btn { display: flex; align-items: center; gap: 8px; background: var(--text); color: #fff; border: none; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
+.rand-btn { display: flex; align-items: center; gap: 8px; background: var(--text); color: var(--bg); border: none; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
 .rand-btn:hover { opacity: .85; }
-.rand-btn svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rand-btn svg { width: 18px; height: 18px; stroke: var(--bg); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ─── Level picker ─── */
 .level-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.75rem; align-items: center; }
 .level-bar-label { font-size: 13px; color: var(--text3); font-weight: 500; margin-right: 4px; }
 .lvl-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .15s; font-family: inherit; }
 .lvl-btn:hover { border-color: var(--text3); color: var(--text); }
-.lvl-btn.active { background: var(--text); border-color: var(--text); color: #fff; }
+.lvl-btn.active { background: var(--text); border-color: var(--text); color: var(--bg); }
 .lvl-emoji { font-size: 16px; }
 .lvl-label { font-size: 14px; }
 
@@ -91,7 +108,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 
 .score-label { font-size: 14px; color: var(--text2); }
 .score-label b { color: var(--text); }
-.next-btn { background: var(--text); color: #fff; border: none; border-radius: 10px; padding: 10px 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity .15s; font-family: inherit; }
+.next-btn { background: var(--text); color: var(--bg); border: none; border-radius: 10px; padding: 10px 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity .15s; font-family: inherit; }
 .next-btn:hover { opacity: .85; }
 
 /* ─── Schulte ─── */
