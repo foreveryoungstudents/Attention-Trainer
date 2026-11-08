@@ -85,6 +85,14 @@ function showFb(ok, ans) {
   fb.style.display = 'block';
   fb.className = 'feedback ' + (ok ? 'ok' : 'no');
   fb.textContent = ok ? '✓ Верно!' : '✗ Правильный ответ: ' + ans;
+  // Необязательное пояснение: если задача вернула explain, показываем его под вердиктом
+  const ex = STATE.curTask && STATE.curTask.explain;
+  if (ex) {
+    const d = document.createElement('div');
+    d.textContent = ex;   // textContent, а не innerHTML — текст выводится как есть
+    d.style.cssText = 'margin-top:6px;font-size:14px;opacity:.85';
+    fb.appendChild(d);
+  }
 }
 
 /* ─── Standard answer check ─── */
