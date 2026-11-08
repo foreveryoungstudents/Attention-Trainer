@@ -5,12 +5,14 @@
 ═══════════════════════════════════════ */
 
 const SECTIONS = [
-  { label: 'Внимание — базовые',          cats: ['stroop','focus','grid_search','diff','oral_math','grid_memory'] },
+  { label: 'Внимание — базовые',          cats: ['focus','grid_search','diff'] },
   { label: 'Таблицы Шульте',              cats: ['schulte5','schulte7','schulte_chaos'] },
-  { label: 'Память и последовательности', cats: ['memory','sequence','pattern'] },
-  { label: 'Межполушарное взаимодействие',cats: ['bihem_hand','bihem_match','bihem_seq'] },
+  { label: 'Память',                      cats: ['grid_memory', 'memory'] },
+  { label: 'Последовательности',          cats: ['pattern', 'matrix_logic', 'bongard'] }, 
+  { label: 'Математика',                  cats: ['oral_math','sequence','pattern'] },
+  { label: 'Межполушарное взаимодействие',cats: ['stroop','bihem_hand','bihem_match','bihem_seq'] },
   { label: 'Речь и словесное внимание',   cats: ['text_attn','anagram','speech_odd'] },
-  { label: 'Мышление и логика',           cats: ['analogy','except','matrix_logic','bongard'] },
+  { label: 'Мышление и логика',           cats: ['analogy','except'] },
 ];
 
 /* CATS is populated by each category file */
