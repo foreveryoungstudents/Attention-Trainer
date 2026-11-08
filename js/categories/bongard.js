@@ -6,6 +6,7 @@ const bgRnd = (a, b) => a + Math.random() * (b - a);
 const bgExt = s => s.r * (s.t === 't' ? 1.1 : s.t === 's' ? 1.25 : 1);
 const bgCorners = t => t === 'c' ? 0 : t === 's' ? 4 : 3;
 const bgLc = t => t[0].toLowerCase() + t.slice(1);   // «Есть треугольник» → «есть треугольник»
+const bgHW = (t, r) => r * (t === 'c' ? 1 : t === 's' ? .88 : .953);   // реальная полуширина фигуры
 const BG_M = 1.5;   // запас на толщину контура, чтобы фигура не касалась осевой линии
 const bgHalfY = () => Math.random() < .5 ? bgRnd(16, 24) : bgRnd(40, 46);
 
@@ -17,7 +18,7 @@ function bgScatter(specs, axes) {
     let ok = false;
     for (let k = 0; k < 80 && !ok; k++) {
       const x = bgRnd(e + 3, 61 - e), y = bgRnd(e + 3, 61 - e);
-      const gap = axes ? e + BG_M : 5;    // с осями: фигура не должна задевать ни одну линию
+      const gap = axes ? e + BG_M : (e > 20 ? 0 : 5);    // с осями: фигура не должна задевать ни одну линию
       if (Math.abs(x - 32) < gap || Math.abs(y - 32) < gap) continue;
       if (out.every(o => Math.hypot(o.x - x, o.y - y) >= bgExt(o) + e + 3)) {
         out.push({...sp, x, y}); ok = true;
@@ -34,20 +35,18 @@ function bgCard(col, axes) {
   const T = () => BG_T[r(3)], F = () => Math.random() < .5;
   const q = axes ? 1 : Math.random();   // axes: пропускаем особые раскладки
 
-  /* Размеры только из чётко различимых классов: маленький (4–6), средний (10), большой (15+).
-     Промежуточных радиусов (7, 8, 9) нет, иначе «маленькая» фигура от «не маленькой» не отличается на глаз. */
+  /* Ровно три размера: маленький 5, средний 14, большой 22. Других нет,
+     иначе «большая» фигура на глаз не отличается от «средней». */
 
-  // ряд фигур слева направо с заданными радиусами; jit — разброс по вертикали
-  const row = (rads, y, jit) => {
-    const items = rads.map(rad => { const t = T(); return {t, r:rad, e:bgExt({t, r:rad})}; });
-    const total = items.reduce((a, it) => a + 2 * it.e, 0) + 3 * (items.length - 1);
+  // ряд фигур слева направо с заданными радиусами (по реальной ширине, с зазором)
+  const row = (rads, y) => {
+    const items = rads.map(rad => { const t = T(); return {t, r:rad, hw:bgHW(t, rad)}; });
+    const total = items.reduce((a, it) => a + 2 * it.hw, 0) + 4.5 * (items.length - 1);
     let x = (64 - total) / 2;                                     // центрируем по ширине
     return items.map(it => {
-      x += it.e;
-      // с разбросом по вертикали держим фигуру целиком внутри карточки
-      const yy = jit ? Math.min(64 - it.e - 2.5, Math.max(it.e + 2.5, y + bgRnd(-jit, jit))) : y;
-      const o = {t:it.t, r:it.r, f:F(), c:pc(), x, y: yy};
-      x += it.e + 3;
+      x += it.hw;
+      const o = {t:it.t, r:it.r, f:F(), c:pc(), x, y};
+      x += it.hw + 4.5;
       return o;
     });
   };
@@ -56,24 +55,21 @@ function bgCard(col, axes) {
     const c1 = pc();
     return {k:'nest', s:[
       {t:T(), r:22, f:false, c:c1, x:32, y:32},
-      {t:T(), r:6,  f:F(),   c:col ? pc() : c1, x:32, y:32}]};
+      {t:T(), r:5,  f:F(),   c:col ? pc() : c1, x:32, y:32}]};
   }
   if (q < .26) {                                   // фигуры в одну линию
-    const n = 3 + r(2), y = bgHalfY();
-    const rads = n === 3 ? shu(Math.random() < .5 ? [6,6,10] : [6,6,6]) : [5,5,5,5];
-    return {k:'line', s: row(rads, y, 0)};
-  }
-  if (q < .38) {                                   // три фигуры: размеры растут / убывают
-    const rads = [4, 6, 10]; if (Math.random() < .5) rads.reverse();
-    return {k:'asc', s: row(rads, bgHalfY(), 3)};
+    const n = 3 + r(2);
+    const rads = n === 3 ? shu(Math.random() < .5 ? [5,5,14] : [5,5,5]) : [5,5,5,5];
+    const y = Math.max(bgHalfY(), rads.includes(14) ? 20 : 0);   // средняя фигура не должна упираться в верхний край
+    return {k:'line', s: row(rads, y)};
   }
   for (let tr = 0; tr < 30; tr++) {                // обычная случайная карточка
     const n = pick([1,1,2,2,2,3,3,3,4]);
-    const rs = n <= 2 ? [6,10,15] : n === 3 ? [6,10] : [6,6,10];
+    const rs = axes ? [5] : n <= 2 ? [5,14,22] : n === 3 ? [5,14] : [5,5,14];
     const placed = bgScatter(Array.from({length:n}, () => ({t:T(), r:pick(rs), f:F(), c:pc()})), axes);
     if (placed) return {k:'rnd', s:placed};
   }
-  return {k:'rnd', s:[{t:'c', r:10, f:true, c:pc(), x:20, y:20}]};
+  return {k:'rnd', s:[{t:'c', r:5, f:true, c:pc(), x:20, y:20}]};
 }
 
 /* axes — рисовать ли пунктирные осевые линии (для правил про «половины») */
@@ -114,8 +110,8 @@ const BG_RULES = [
   {n:'Все фигуры красные',           from:1, to:2, col:true, opp:'Есть синяя фигура', t:c => c.s.every(s => s.c === BG_RED)},
   {n:'Есть синяя фигура',            from:1, to:2, col:true, opp:'Все фигуры красные', t:c => c.s.some(s => s.c === BG_BLUE)},
   // — уровень 2–3: размер и положение —
-  {n:'Все фигуры маленькие',         from:2, to:3, t:c => c.s.every(s => s.r <= 6)},
-  {n:'Есть большая фигура',          from:2, to:4, t:c => c.s.some(s => s.r >= 15)},
+  {n:'Все фигуры маленькие',         from:2, to:3, t:c => c.s.every(s => s.r <= 5)},
+  {n:'Есть большая фигура',          from:2, to:4, t:c => c.s.some(s => s.r >= 22)},
   {n:'Все фигуры одного размера',    from:2, to:4, t:c => c.s.every(s => s.r === c.s[0].r)},
   {n:'Все фигуры одного вида',       from:2, to:4, t:c => c.s.every(s => s.t === c.s[0].t)},
   {n:'Все фигуры в верхней половине', from:2, to:3, ax:true, t:c => c.s.every(s => s.y + bgExt(s) + BG_M < 32)},
@@ -133,10 +129,6 @@ const BG_RULES = [
     t:c => c.s.length >= 2 && new Set(c.s.map(s => s.t)).size === c.s.length},
   {n:'Фигуры стоят в одну линию',    from:3, to:4, t:c => {
     const ys = c.s.map(s => s.y); return c.s.length >= 3 && Math.max(...ys) - Math.min(...ys) < .5; }},
-  {n:'Размеры растут слева направо', from:3, to:4, t:c => {
-    if (c.s.length < 3) return false;
-    const o = [...c.s].sort((a, b) => a.x - b.x);
-    return o.every((s, i) => i === 0 || s.r > o[i-1].r); }},
   // — уровень 4: сложные правила —
   {n:'Закрашенных и контурных поровну', from:4, to:4,
     t:c => c.s.length % 2 === 0 && c.s.filter(s => s.f).length * 2 === c.s.length},
