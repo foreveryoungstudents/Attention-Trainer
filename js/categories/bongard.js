@@ -10,14 +10,15 @@ const BG_M = 1.5;   // запас на толщину контура, чтобы
 const bgHalfY = () => Math.random() < .5 ? bgRnd(16, 24) : bgRnd(40, 46);
 
 /* случайная раскладка без наложений; фигуры не стоят на осевых линиях карточки */
-function bgScatter(specs) {
+function bgScatter(specs, axes) {
   const out = [];
   for (const sp of [...specs].sort((a, b) => b.r - a.r)) {
     const e = bgExt(sp);
     let ok = false;
     for (let k = 0; k < 80 && !ok; k++) {
       const x = bgRnd(e + 3, 61 - e), y = bgRnd(e + 3, 61 - e);
-      if (Math.abs(x - 32) < 5 || Math.abs(y - 32) < 5) continue;
+      const gap = axes ? e + BG_M : 5;    // с осями: фигура не должна задевать ни одну линию
+      if (Math.abs(x - 32) < gap || Math.abs(y - 32) < gap) continue;
       if (out.every(o => Math.hypot(o.x - x, o.y - y) >= bgExt(o) + e + 3)) {
         out.push({...sp, x, y}); ok = true;
       }
@@ -28,10 +29,10 @@ function bgScatter(specs) {
 }
 
 /* одна случайная карточка; col — использовать ли цвета */
-function bgCard(col) {
+function bgCard(col, axes) {
   const pc = () => col ? (Math.random() < .5 ? BG_RED : BG_BLUE) : BG_INK;
   const T = () => BG_T[r(3)], F = () => Math.random() < .5;
-  const q = Math.random();
+  const q = axes ? 1 : Math.random();   // axes: пропускаем особые раскладки
 
   if (q < .12) {                                   // одна фигура внутри другой
     const c1 = pc();
@@ -61,7 +62,7 @@ function bgCard(col) {
   for (let tr = 0; tr < 30; tr++) {                // обычная случайная карточка
     const n = pick([1,1,2,2,2,3,3,3,4]);
     const rs = n <= 2 ? [6,10,15] : n === 3 ? [6,10] : [6,6,10];
-    const placed = bgScatter(Array.from({length:n}, () => ({t:T(), r:pick(rs), f:F(), c:pc()})));
+    const placed = bgScatter(Array.from({length:n}, () => ({t:T(), r:pick(rs), f:F(), c:pc()})), axes);
     if (placed) return {k:'rnd', s:placed};
   }
   return {k:'rnd', s:[{t:'c', r:10, f:true, c:pc(), x:20, y:20}]};
@@ -141,7 +142,7 @@ const BG_RULES = [
 function bgSample(rule, want) {
   let c;
   for (let i = 0; i < 500; i++) {
-    c = bgCard(!!rule.col);
+    c = bgCard(!!rule.col, !!rule.ax);
     if (rule.t(c) === want) return c;
   }
   return c;
@@ -209,8 +210,7 @@ CATS.bongard = {
 
     return {
       q,
-      vis: `<div style="font-size:13px;color:var(--text3);line-height:1.4;margin-bottom:8px">Правило выполняется в каждой карточке одной группы и ни в одной карточке другой.</div>
-            <div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
+      vis: `<div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
       ans, opts, timer, explain
     };
   }
