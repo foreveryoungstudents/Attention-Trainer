@@ -30,12 +30,13 @@ const DIFF_THEMES = {
 const DIFF_FAM = {};
 Object.values(DIFF_THEMES).forEach(fams => fams.forEach(f => f.forEach(e => DIFF_FAM[e] = f)));
 // По уровням: размер поля, число отличий, типы изменений, доля замен на похожий предмет.
-// Пустых клеток нет нигде: на поле всегда есть что запоминать.
+// Пустых клеток и повторяющихся картинок нет нигде: на поле всегда есть что запоминать,
+// а лишний «двойник» не выдаёт место замены.
 const DIFF_LEVELS = [
   { g: 3, n: 1, types: ['replace'], sim: 0 },
-  { g: 3, n: 2, types: ['replace', 'dup'], sim: .5 },
-  { g: 4, n: 3, types: ['replace', 'dup', 'swap'], sim: .7 },
-  { g: 4, n: 4, types: ['replace', 'dup', 'swap'], sim: 1 }
+  { g: 3, n: 2, types: ['replace', 'swap'], sim: .5 },
+  { g: 4, n: 3, types: ['replace', 'swap'], sim: .7 },
+  { g: 4, n: 4, types: ['replace', 'swap'], sim: 1 }
 ];
 const DIFF_SEEN = new Set();   // уже показанные поля — чтобы не повторялись
 let DIFF_LAST_THEME = '';
@@ -58,23 +59,28 @@ function diffTry(cfg) {
   const fams = DIFF_THEMES[theme], flat = fams.flat();
   const orig = shu(flat).slice(0, N);
   const mod = orig.slice(), used = new Set(), diffs = [];
+  const taken = new Set(orig);                       // всё, что уже есть на поле: новая картинка не должна повторять ни одну из них
   const free = () => [...Array(N).keys()].filter(i => !used.has(i));
+  const fresh = list => list.filter(x => !taken.has(x));
   let guard = 0;
   while (diffs.length < n && guard++ < 300) {
     const t = guard > 100 ? 'replace' : pick(cfg.types);
     if (t === 'replace') {
-      const c = pick(free()), o = orig[c], fam = DIFF_FAM[o];
-      let e;
-      if (Math.random() < cfg.sim && fam.length > 1) e = pick(fam.filter(x => x !== o));   // похожий
-      else { const far = fams.filter(f => f !== fam).flat(); e = pick(far.length ? far : flat.filter(x => x !== o)); }   // непохожий: другое семейство той же темы
-      mod[c] = e; used.add(c); diffs.push({ cells: [c], type: t });
-    } else {                                          // swap / dup — нужен соседний предмет
+      const cells = free(), wantSim = Math.random() < cfg.sim;
+      const simCells = wantSim ? cells.filter(i => fresh(DIFF_FAM[orig[i]]).length) : [];   // клетки, для которых есть свободный «похожий»
+      const c = pick(simCells.length ? simCells : cells), o = orig[c], fam = DIFF_FAM[o];
+      const far = fresh(fams.filter(f => f !== fam).flat());
+      let cand = simCells.length ? fresh(fam) : far;            // похожий (из того же семейства) или непохожий
+      if (!cand.length) cand = far.length ? far : fresh(flat);  // запасной вариант, если свободных нет
+      if (!cand.length) continue;
+      const e = pick(cand);
+      mod[c] = e; taken.add(e); used.add(c); diffs.push({ cells: [c], type: t });
+    } else {                                          // swap — два соседних предмета меняются местами (повторов не возникает)
       for (const c of shu(free())) {
-        const ds = diffNb(c, G).filter(d => !used.has(d) && orig[d] !== orig[c]);
+        const ds = diffNb(c, G).filter(d => !used.has(d));
         if (!ds.length) continue;
         const d = pick(ds);
-        if (t === 'swap') { mod[c] = orig[d]; mod[d] = orig[c]; used.add(c); used.add(d); diffs.push({ cells: [c, d], type: t }); }
-        else { mod[c] = orig[d]; used.add(c); used.add(d); diffs.push({ cells: [c], type: t }); }
+        mod[c] = orig[d]; mod[d] = orig[c]; used.add(c); used.add(d); diffs.push({ cells: [c, d], type: t });
         break;
       }
     }
