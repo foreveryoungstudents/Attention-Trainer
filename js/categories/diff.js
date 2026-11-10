@@ -29,13 +29,13 @@ const DIFF_THEMES = {
 };
 const DIFF_FAM = {};
 Object.values(DIFF_THEMES).forEach(fams => fams.forEach(f => f.forEach(e => DIFF_FAM[e] = f)));
-// По уровням: размер поля, число отличий, типы изменений, доля замен на похожий предмет,
-// скрыто ли число отличий. Пустых клеток нет нигде: на поле всегда есть что запоминать.
+// По уровням: размер поля, число отличий, типы изменений, доля замен на похожий предмет.
+// Пустых клеток нет нигде: на поле всегда есть что запоминать.
 const DIFF_LEVELS = [
-  { g: 3, n: 1, types: ['replace'], sim: 0, hidden: false },
-  { g: 4, n: 2, types: ['replace', 'dup'], sim: .5, hidden: false },
-  { g: 5, n: 3, types: ['replace', 'dup', 'swap'], sim: .7, hidden: true },
-  { g: 5, n: 4, types: ['replace', 'dup', 'swap'], sim: 1, hidden: true }
+  { g: 3, n: 1, types: ['replace'], sim: 0 },
+  { g: 3, n: 2, types: ['replace', 'dup'], sim: .5 },
+  { g: 4, n: 3, types: ['replace', 'dup', 'swap'], sim: .7 },
+  { g: 4, n: 4, types: ['replace', 'dup', 'swap'], sim: 1 }
 ];
 const DIFF_SEEN = new Set();   // уже показанные поля — чтобы не повторялись
 let DIFF_LAST_THEME = '';
@@ -79,7 +79,7 @@ function diffTry(cfg) {
       }
     }
   }
-  return { grid: G, orig, mod, diffs, hidden: cfg.hidden, types: cfg.types };
+  return { grid: G, orig, mod, diffs, types: cfg.types };
 }
 
 function diffGenerate(lvl) {
@@ -107,13 +107,13 @@ function diffEnsureStyle() {
 }
 
 function renderDiff() {
-  diffEnsureStyle();
+  if (STATE.scratch && STATE.scratch.timerId) clearInterval(STATE.scratch.timerId);   // таймер прошлого задания не должен дожить до нового
   const lvl = getLvl();
   const sc = diffGenerate(lvl);
   const memSec = Math.max(5, Math.round(20 * lvl.timerMul));
   const cellDiff = new Map();                          // клетка → номер отличия
   sc.diffs.forEach((d, k) => d.cells.forEach(c => cellDiff.set(c, k)));
-  STATE.scratch = { sc, cellDiff, nDiff: sc.diffs.length, found: 0, done: false, timerId: null, sel: new Set() };
+  STATE.scratch = { sc, cellDiff, nDiff: sc.diffs.length, found: 0, foundK: new Set(), done: false, timerId: null };
   diffShowMemorize(sc, memSec);
 }
 
@@ -142,7 +142,7 @@ function diffFit() {
   const cols = parseInt(imgs[0].style.getPropertyValue('--diff-cols')) || 5;
   const gap = 4, pad = 20, sep = 28;                      // sep — расстояние между полями
   const W = area.clientWidth || window.innerWidth;
-  const cellFor = w => Math.min(88, Math.floor((w - pad - gap * (cols - 1)) / cols));
+  const cellFor = w => Math.min(cols <= 3 ? 104 : 88, Math.floor((w - pad - gap * (cols - 1)) / cols));
   const side = imgs.length === 2 && cellFor((W - sep) / 2) >= 56;
   const cell = Math.max(36, cellFor(side ? (W - sep) / 2 : W));
   imgs[0].closest('.diff-wrap').style.cssText =
@@ -167,20 +167,24 @@ function diffFit() {
 }
 window.addEventListener('resize', diffFit);
 
+function diffWord(n) { return `${n} ${n === 1 ? 'отличие' : n < 5 ? 'отличия' : 'отличий'}`; }
+
 function diffShowMemorize(sc, secLeft) {
+  const mine = STATE.scratch;                          // это задание; если оно сменилось, таймер сам останавливается
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">Запомни расположение — осталось <b id="diff-timer">${secLeft}</b> сек</div>
+    <div style="text-align:center;font-size:15px;color:var(--text2);margin:-4px 0 8px">Потом нужно будет найти <b>${diffWord(mine.nDiff)}</b></div>
     <div class="diff-wrap">${diffCard(sc, false, false, 'Оригинал')}</div>
     <button class="btn-sm" id="diff-skip-btn" style="display:block;margin:14px auto 0" onclick="diffSkipMemorize()">Готов, дальше →</button>`;
   diffFit();
 
   let t = secLeft;
-  STATE.scratch.timerId = setInterval(() => {
-    t--;
+  mine.timerId = setInterval(() => {
     const el = document.getElementById('diff-timer');
-    if (!el) { clearInterval(STATE.scratch.timerId); return; }
+    if (STATE.scratch !== mine || !el) { clearInterval(mine.timerId); return; }
+    t--;
     if (t <= 0) {
-      clearInterval(STATE.scratch.timerId);
+      clearInterval(mine.timerId);
       diffShowReveal(sc);
     } else {
       el.textContent = t;
@@ -194,71 +198,45 @@ function diffSkipMemorize() {
 }
 
 function diffShowReveal(sc) {
-  const nDiff = STATE.scratch.nDiff;
-  const word = nDiff === 1 ? 'отличие' : nDiff < 5 ? 'отличия' : 'отличий';
+  const S = STATE.scratch;
   document.getElementById('task-area').innerHTML = `
-    <div class="task-q">${sc.hidden
-      ? 'По памяти отметь <b>все изменения</b> и нажми «Готово»'
-      : `По памяти найди <b>${nDiff} ${word}</b>`}</div>
+    <div class="task-q">По памяти найди <b>${diffWord(S.nDiff)}</b></div>
     <div class="diff-wrap" id="diff-pair">${diffCard(sc, true, true, 'Изменённое поле', 'diff-mod')}</div>
-    <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">${sc.hidden ? 'Отмечено: 0' : `Найдено: 0 из ${nDiff}`}</div>
-    ${sc.hidden ? '<button class="btn-sm" id="diff-done-btn" style="display:block;margin:12px auto 0" onclick="diffFinish()">Готово</button>' : ''}`;
+    <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">Найдено: 0 из ${S.nDiff}</div>`;
   diffFit();
 }
 
+const diffCellEl = i => document.querySelector(`#diff-mod [data-i="${i}"]`);
+
 function diffClick(el) {
   const S = STATE.scratch;
-  if (S.done) return;
+  if (S.done || el.classList.contains('found')) return;
   const i = +el.dataset.i;
-  if (S.sc.hidden) {                                   // уровни 3–4: отмечаем, проверка — по кнопке «Готово»
-    if (S.sel.has(i)) { S.sel.delete(i); el.style.outline = ''; }
-    else { S.sel.add(i); el.style.outline = '3px solid #378add'; el.style.outlineOffset = '-3px'; }
-    document.getElementById('diff-cnt').textContent = `Отмечено: ${S.sel.size}`;
-    return;
-  }
-  if (el.classList.contains('found')) return;          // уровни 1–2: сразу проверяем
-  if (S.cellDiff.has(i)) {
-    S.sc.diffs[S.cellDiff.get(i)].cells.forEach(c => document.querySelector(`#diff-mod [data-i="${c}"]`).classList.add('found'));
-    S.found++;
+  if (S.cellDiff.has(i)) {                             // верно: отличие найдено (у обмена — обе клетки)
+    const k = S.cellDiff.get(i);
+    S.sc.diffs[k].cells.forEach(c => diffCellEl(c).classList.add('found'));
+    S.foundK.add(k); S.found++;
     document.getElementById('diff-cnt').textContent = `Найдено: ${S.found} из ${S.nDiff}`;
-    if (S.found >= S.nDiff) {
-      S.done = true;
-      STATE.answered = true;
-      STATE.scOk++; STATE.scTot++;
-      diffShowPair();
-      updScore(); showFb(true, '');
-      document.getElementById('nxt-btn').style.display = 'block';
-    }
-  } else {
-    el.classList.add('wc');
-    setTimeout(() => el.classList.remove('wc'), 400);
+    if (S.found >= S.nDiff) diffEnd(true);
+  } else {                                             // первый неверный клик — задание окончено
+    el.style.background = '#f7c1c1';
+    diffEnd(false);
   }
 }
 
-function diffFinish() {
+// Конец задания: показываем обе карточки; пропущенные отличия — оранжевой рамкой
+function diffEnd(ok) {
   const S = STATE.scratch;
-  if (S.done) return;
   S.done = true; STATE.answered = true;
-  const cellEl = i => document.querySelector(`#diff-mod [data-i="${i}"]`);
-  let foundN = 0;
-  S.sc.diffs.forEach(d => {
-    const hit = d.cells.some(c => S.sel.has(c));       // у обмена достаточно отметить любую из двух клеток
-    if (hit) foundN++;
-    d.cells.forEach(c => {
-      const el = cellEl(c);
-      if (hit) { el.classList.add('found'); el.style.outline = ''; }
-      else { el.style.outline = '3px solid #ef9f27'; el.style.outlineOffset = '-3px'; }
+  if (!ok) {
+    S.sc.diffs.forEach((d, k) => {
+      if (S.foundK.has(k)) return;
+      d.cells.forEach(c => { const e = diffCellEl(c); e.style.outline = '3px solid #ef9f27'; e.style.outlineOffset = '-3px'; });
     });
-  });
-  const wrong = [...S.sel].filter(c => !S.cellDiff.has(c));
-  wrong.forEach(c => { const el = cellEl(c); el.style.outline = ''; el.style.background = '#f7c1c1'; });
-  const ok = foundN === S.nDiff && wrong.length === 0;
-  document.getElementById('diff-cnt').textContent =
-    `Найдено ${foundN} из ${S.nDiff}` + (wrong.length ? `, лишних отметок: ${wrong.length}` : '') +
-    (foundN < S.nDiff ? ' · оранжевым показаны пропущенные' : '');
-  document.getElementById('diff-done-btn').style.display = 'none';
+    document.getElementById('diff-cnt').textContent = `Найдено: ${S.found} из ${S.nDiff} · оранжевым показаны пропущенные`;
+  }
   diffShowPair();
-  STATE.scOk += ok ? 1 : 0; STATE.scTot++;
+  STATE.scTot++; if (ok) STATE.scOk++;
   updScore(); showFb(ok, '');
   document.getElementById('nxt-btn').style.display = 'block';
 }
