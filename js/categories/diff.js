@@ -151,19 +151,17 @@ function diffFit() {
   const force = (el, k, v) => el.style.setProperty(k, v, 'important');   // задаём размеры жёстко, чтобы стили страницы не сужали карточку
   imgs.forEach(img => {
     const card = img.closest('.diff-card');
-    force(card, 'width', (gridW + pad) + 'px'); force(card, 'max-width', 'none'); force(card, 'min-width', '0');
-    force(card, 'flex', 'none'); force(card, 'box-sizing', 'border-box');
-    force(img, 'width', gridW + 'px'); force(img, 'max-width', 'none'); force(img, 'margin', '0 auto');
-    img.style.display = 'grid';
-    img.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
-    img.style.gap = gap + 'px';
-    img.style.justifyContent = 'center';
+    force(card, 'width', (gridW + pad) + 'px'); force(card, 'height', 'auto'); force(card, 'max-width', 'none');
+    force(card, 'min-width', '0'); force(card, 'flex', 'none'); force(card, 'box-sizing', 'border-box');
+    force(img, 'display', 'flex'); force(img, 'flex-wrap', 'wrap'); force(img, 'align-content', 'flex-start'); force(img, 'width', gridW + 'px'); force(img, 'height', 'auto'); force(img, 'max-width', 'none');
+    force(img, 'max-height', 'none'); force(img, 'aspect-ratio', 'auto'); force(img, 'margin', '0 auto');
+    // сетка собрана через flex-wrap: высота строки = высоте клетки, страница не может сжать строки и наложить клетки друг на друга
+    force(img, 'gap', gap + 'px'); force(img, 'justify-content', 'center');
     img.querySelectorAll('.diff-cell').forEach(c => {     // по отдельным свойствам, чтобы не стереть отметки (outline, фон)
-      c.style.width = c.style.height = cell + 'px';
-      c.style.fontSize = Math.round(cell * 0.62) + 'px';
-      c.style.display = 'flex';
-      c.style.alignItems = c.style.justifyContent = 'center';
-      c.style.lineHeight = '1';
+      force(c, 'flex', 'none'); force(c, 'width', cell + 'px'); force(c, 'height', cell + 'px'); force(c, 'min-width', '0'); force(c, 'min-height', '0');
+      force(c, 'aspect-ratio', 'auto'); force(c, 'box-sizing', 'border-box'); force(c, 'margin', '0'); force(c, 'padding', '0');
+      force(c, 'font-size', Math.round(cell * 0.55) + 'px'); force(c, 'line-height', '1');
+      force(c, 'display', 'flex'); force(c, 'align-items', 'center'); force(c, 'justify-content', 'center'); force(c, 'overflow', 'hidden');
     });
   });
 }
