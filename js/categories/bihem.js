@@ -94,12 +94,12 @@
     if (P.thumbs) {
       // кулак сбоку: пальцы лежат горизонтальной стопкой, большой палец растёт сверху из середины кулака
       all = [
-        ...(P.fig ? [] : [[rect(72, 18, 94, 24, 4, 72, 94), 't']]),
-        [`<rect x="16" y="66" width="88" height="66" rx="24"/>`, 'p'],
-        // «фига»: кончик большого пальца — кружок между указательным и средним (лежит ПОД пальцами, виден в щели)
-        ...(P.fig ? [[`<circle cx="76" cy="81" r="7.5"/>`, 't']] : []),
+        ...(P.fig ? [] : [[rect(68, 18, 94, 24, 4, 68, 94), 't']]),
+        [`<rect x="16" y="66" width="82" height="66" rx="24"/>`, 'p'],
         // у «фиги» внутренний край указательного приподнят, у основания пальцы по-прежнему вместе
-        ...[72, 87, 102, 117].map((y, k) => [`<rect x="22" y="${y}" width="70" height="14" rx="7"${P.fig && k === 0 ? ' transform="rotate(-14 29 79)"' : ''}/>`, 'c']),
+        ...[72, 87, 102, 117].map((y, k) => [`<rect x="22" y="${y}" width="58" height="14" rx="7"${P.fig && k === 0 ? ' transform="rotate(-14 29 79)"' : ''}/>`, 'c']),
+        // «фига»: кончик большого пальца — кружок в щели между указательным и средним, чуть заходит на их границы
+        ...(P.fig ? [[`<circle cx="64" cy="81" r="10"/>`, 't']] : []),
       ];
     }
     if (P.side) {
@@ -141,10 +141,10 @@
   // Скороговорки: 23 фрагмента. Символ | разбивает фрагмент на доли (одна доля = одна секунда).
   // Если | нет — по одному слову на секунду.
   const TWISTERS = [
-    'В четверг четвёртого числа в четыре с че́твертью часа лигури́йский регулировщик регулировал в Лигу́рии.',
-    'Но тридцать три корабля лави́ровали, лави́ровали, да так и не вы́лавировали.',
-    'А потом протокол про протокол протоколом запротоколировал.',
-    'Как интервьюе́ром интервьюи́руемый лигури́йский регулировщик речисто, да не чисто рапортова́л, да не дорапортова́л дорапорто́вывал да так зарапортова́лся про размокропогодившуюся погоду что, дабы инцидент не стал претендентом на судебный прецедент.',
+    'В четверг | четвёртого числа | в четыре с че́твертью часа | лигури́йский регулировщик | регулировал в Лигу́рии. |',
+    'Но тридцать три корабля | лави́ровали, лави́ровали, | да так и не вы́лавировали.',
+    'А потом протокол | про протокол | протоколом запротоколировал.',
+    'Как интервьюе́ром | интервьюи́руемый | лигури́йский регулировщик | речисто, да не чисто | рапортова́л, да не дорапортова́л | дорапорто́вывал | да так зарапортова́лся | про размокропогодившуюся погоду | что, дабы инцидент не стал претендентом | на судебный прецедент',
     'лигурийский регулировщик акклиматизировался в неконституционном Константинополе, Где хохлатые хохотушки хохотом хохотали',
     'и кричали турке, который начерно обкурен трубкой: Не кури, турка, трубку, купи лучше кипу пик, лучше пик кипу купи.',
     'А то придет бомбарди́р из Бранденбу́рга — бо́мбами забомбардиру́ет за то, что некто черноры́лый у него полдвора рылом изрыл, вырыл и подрыл.',
@@ -169,21 +169,34 @@
   const toBeats = t => t.includes('|')
     ? t.split('|').map(x => x.trim()).filter(Boolean)
     : t.split(/\s+/).filter(w => w && !/^[—–-]+$/.test(w));
-  const ALPHABET = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ'.split('');
+  const ALPHABET = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.split('');
   const TOTAL = 30;      // смен позиций за задание
   const STEP_MS = 2000;  // шаг = 1 с смена + 1 с задержка до следующей смены
 
   window.__bihem = window.__bihem || {};
 
+  /* ── ЧЕРЕДОВАНИЕ РЕЖИМОВ ПО СЕССИЯМ ──
+     Сессия = 5 карточек подряд (новый массив STATE.sessCats). Внутри одной сессии режим один и тот же,
+     в следующей сессии — следующий по кругу (отдельный счётчик для каждого уровня).
+       3 уровень: алфавит → скороговорки → счёт → алфавит …
+       4 уровень: левая — положения, правая — числа  →  правая — положения, левая — числа → … */
+  const MODES3 = ['alphabet', 'twister', 'count'];
+  const rot = { ref: null, seen: {}, n: {} };
+  function sessionRound(key) {
+    if (rot.ref !== STATE.sessCats) { rot.ref = STATE.sessCats; rot.seen = {}; }
+    if (!(key in rot.seen)) { rot.n[key] = (rot.n[key] ?? -1) + 1; rot.seen[key] = rot.n[key]; }
+    return rot.seen[key];
+  }
+
   // Строит шаги по готовой последовательности seq (30 пар [левая, правая], см. PATTERNS)
-  // и добавляет то, что даёт уровень: хлопки, речь или цветные числа
-  function buildSteps(lvlId, seq) {
+  // и добавляет то, что даёт уровень: хлопки (2) или речь (3). round — номер сессии для чередования режимов
+  function buildSteps(lvlId, seq, round) {
     const steps = [];
 
     // Режим речи для 3 уровня
     let speech = null;
     if (lvlId === 3) {
-      const mode = pick(['twister', 'random', 'alphabet']);
+      const mode = MODES3[round % MODES3.length];
       if (mode === 'twister') {
         const words = toBeats(pick(TWISTERS));          // один случайный фрагмент
         const w = i => words[i % words.length];         // короткое — повторяем по кругу
@@ -192,36 +205,24 @@
           get: i => w(i),
           ctx: i => [1, 2, 3, 4].map(k => w(i + k)).join(' ')
         };
-      } else if (mode === 'random') {
-        // Случайная арифметическая последовательность: «Считай по 2, начиная с 3» / «Считай назад по 7 от 93».
-        // Числа на экране не показываем — их нужно считать самому, на экране только правило.
+      } else if (mode === 'count') {
+        // Счёт: на экране правило (прибавлять или отнимать) и текущее число на каждой смене рук.
+        // Назад — старт подобран так, чтобы все 30 чисел остались положительными.
         const back = Math.random() < 0.5;
-        const stp = back ? 2 + Math.floor(Math.random() * 8)     // назад: шаг 2–9
-                         : 2 + Math.floor(Math.random() * 6);    // вперёд: шаг 2–7
-        const from = back ? 60 + Math.floor(Math.random() * 40)  // назад: старт 60–99
-                          : 1 + Math.floor(Math.random() * 20);  // вперёд: старт 1–20
-        const rule = back ? `Считай назад по ${stp}, начиная с ${from}`
-                          : `Считай по ${stp}, начиная с ${from}`;
-        speech = { title: rule, rule, get: () => '' };
+        const stp = back ? 2 + r(5) : 2 + r(6);                  // назад: шаг 2–6, вперёд: шаг 2–7
+        const from = back ? stp * 29 + 5 + r(15) : 1 + r(20);    // назад: старт с запасом, вперёд: 1–20
+        const vals = Array.from({ length: TOTAL }, (_, i) => back ? from - stp * i : from + stp * i);
+        const rule = back ? `Счёт: отнимай по ${stp}, начиная с ${from}`
+                          : `Счёт: прибавляй по ${stp}, начиная с ${from}`;
+        speech = { title: rule, rule, get: i => String(vals[i]) };
       } else {
         speech = { title: 'Называй буквы по алфавиту', get: i => ALPHABET[i % ALPHABET.length] };
       }
     }
 
-    let prevColor = -1;
     for (let i = 0; i < TOTAL; i++) {
       const st = { type: 'pos', L: seq[i][0], R: seq[i][1], n: i + 1, say: '' };
-
       if (lvlId === 3) { st.say = speech.get(i); st.ctx = speech.ctx ? speech.ctx(i) : ''; st.rule = speech.rule || ''; }
-      if (lvlId >= 4) {
-        // левая рука — знак (st.L уже взят из последовательности), правая — цветное число
-        st.R = null;
-        let c;
-        do { c = Math.floor(Math.random() * COLORS.length); } while (c === prevColor);
-        prevColor = c;
-        st.num = 1 + Math.floor(Math.random() * 9);
-        st.color = COLORS[c].hex;
-      }
       steps.push(st);
 
       // 2 уровень: хлопок отдельной секундой между сменами
@@ -229,6 +230,35 @@
     }
     return { steps, hint: speech ? speech.title : '' };
   }
+
+  // 4 уровень. Одна рука показывает положение (каждый раз новое, без повторов подряд),
+  // на второй — цветная цифра 0–5: показать столько пальцев и назвать вслух ЦВЕТ цифры.
+  // Нечётные сессии — цифры на правой руке, чётные — на левой.
+  function buildSteps4(round) {
+    const numHand = round % 2 === 0 ? 'R' : 'L';
+    const poseHand = numHand === 'R' ? 'L' : 'R';
+    let deck = [], last = null, prevColor = -1;
+    const nextPose = () => {
+      if (!deck.length) {                                  // колода всех положений, перемешанная; на стыке без повтора
+        deck = shu(SIGNS);
+        if (deck[0] === last) deck.push(deck.shift());
+      }
+      return (last = deck.shift());
+    };
+    const steps = [];
+    for (let i = 0; i < TOTAL; i++) {
+      let c;
+      do { c = r(COLORS.length); } while (c === prevColor);
+      prevColor = c;
+      const st = { type: 'pos', L: null, R: null, n: i + 1, say: '', numHand, num: r(6), color: COLORS[c].hex };
+      st[poseHand] = nextPose();
+      steps.push(st);
+    }
+    const who = numHand === 'R' ? { pose: 'Левая', num: 'правой' } : { pose: 'Правая', num: 'левой' };
+    const rule = `${who.pose} рука повторяет положения на экране. На ${who.num} руке показывай пальцами число и вслух называй ЦВЕТ, которым оно написано.`;
+    return { steps, rule };
+  }
+
 
   function beep() {
     try {
@@ -253,17 +283,19 @@
               <div style="text-align:center;min-height:64px;margin-top:8px;font-size:22px;font-weight:700;color:var(--text2)">ХЛОПОК!</div>`;
     }
     const lab = (t, c) => `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${c}">${t}</div>`;
-    const left = `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ЛЕВАЯ', '#185fa5')}
-      ${handSVG(st.L, 'L', `width:${HAND_W};max-width:100%;height:auto;display:block;margin:0 auto`)}</div>`;
-    const right = lvlId >= 4
-      ? `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ПРАВАЯ', '#d85a30')}
-          <div style="display:flex;align-items:center;justify-content:center;height:${HAND_W};font-size:${BIG};line-height:1;font-weight:700;color:${st.color}">${st.num}</div></div>`
-      : `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ПРАВАЯ', '#d85a30')}
-          ${handSVG(st.R, 'R', `width:${HAND_W};max-width:100%;height:auto;display:block;margin:0 auto`)}</div>`;
+    // колонка руки: рисунок положения либо цветная цифра (4 уровень)
+    const col = (h, label, color) => {
+      const body = (lvlId >= 4 && st.numHand === h)
+        ? `<div style="display:flex;align-items:center;justify-content:center;height:${HAND_W};font-size:${BIG};line-height:1;font-weight:700;color:${st.color}">${st.num}</div>`
+        : handSVG(st[h], h, `width:${HAND_W};max-width:100%;height:auto;display:block;margin:0 auto`);
+      return `<div style="flex:1 1 0;min-width:0;text-align:center">${lab(label, color)}${body}</div>`;
+    };
+    const left = col('L', 'ЛЕВАЯ', '#185fa5'), right = col('R', 'ПРАВАЯ', '#d85a30');
     let info = '';
-    if (lvlId >= 4) info = 'Называй цвет числа';
+    if (lvlId >= 4) info = 'Покажи пальцами число и назови ЦВЕТ';
     else if (st.say) info = `<b style="font-size:26px">${st.say}</b>` +
-      (st.ctx ? `<div style="font-size:14px;color:var(--text3);margin-top:4px">${st.ctx}</div>` : '');
+      (st.ctx ? `<div style="font-size:14px;color:var(--text3);margin-top:4px">${st.ctx}</div>`
+       : st.rule ? `<div style="font-size:14px;color:var(--text3);margin-top:4px">${st.rule}</div>` : '');
     else if (st.rule) info = `<b style="font-size:20px">${st.rule}</b>` +
       (preview ? '<div style="font-size:14px;color:var(--text3);margin-top:4px">Приготовься и нажми «Старт»</div>' : '');
     else if (preview) info = 'Приготовься и нажми «Старт»';
@@ -385,40 +417,36 @@
 
   /* ── СЦЕНАРИИ СМЕНЫ ПОЛОЖЕНИЙ ──
      Каждая карточка «Руки и ритм» берёт один сценарий случайно (w — вес: чем больше, тем чаще).
-     Уровни (хлопки / речь / цветные числа) работают поверх любого сценария.
+     Уровни 1–3 (счёт, хлопки, речь) работают поверх любого сценария; 4 уровень сценарии не использует.
      make() возвращает:
        seq      — 30 пар [левая, правая] (id положений из HAND_POSES)
        lead     — как описать смены в правиле задания
-       leftNote — что показывает левая рука на 4 уровне (там правая рука — цветное число)
      Новый сценарий — ещё один объект в этом списке. */
   const PATTERNS = [
     // 1) Две случайные позиции, руки меняются ими зеркально
     { id: 'pair', w: 4, make() {
       const a = pick(SIGNS), b = pick(SIGNS.filter(s => s !== a));
       return { seq: seqOf(i => i % 2 === 0 ? [a, b] : [b, a]),
-               lead: 'Меняй позиции зеркально.', leftNote: 'знак' };
+               lead: 'Меняй позиции зеркально.' };
     } },
     // 2) Волк и пистолет: руки меняются местами каждую смену
     { id: 'wolfgun', w: 1, make() {
       const A = Math.random() < 0.5 ? ['wolf', 'sidegun'] : ['sidegun', 'wolf'];
       const nm = { wolf: 'волк', sidegun: 'пистолет' };
       return { seq: seqOf(i => i % 2 === 0 ? A : [A[1], A[0]]),
-               lead: `Левая рука — ${nm[A[0]]}, правая — ${nm[A[1]]}. Каждую смену руки меняются: волк ↔ пистолет.`,
-               leftNote: 'волк ↔ пистолет' };
+               lead: `Левая рука — ${nm[A[0]]}, правая — ${nm[A[1]]}. Каждую смену руки меняются: волк ↔ пистолет.` };
     } },
     // 3) Большой палец вверх на одной руке и «фига» на другой; каждую смену меняются
     { id: 'thumbfig', w: 1, make() {
       const A = Math.random() < 0.5 ? ['thumbup', 'fig'] : ['fig', 'thumbup'];
       const nm = { thumbup: 'большой палец вверх', fig: 'фига' };
       return { seq: seqOf(i => i % 2 === 0 ? A : [A[1], A[0]]),
-               lead: `Левая рука — ${nm[A[0]]}, правая — ${nm[A[1]]}. Каждую смену руки меняются.`,
-               leftNote: 'большой палец ↔ фига' };
+               lead: `Левая рука — ${nm[A[0]]}, правая — ${nm[A[1]]}. Каждую смену руки меняются.` };
     } },
     // 4) Пальцы здороваются синхронно: обе руки показывают одно и то же, по одному положению за смену
     { id: 'hello_sync', w: 1, make() {
       return { seq: seqOf(i => [HELLO[i % 4], HELLO[i % 4]]),
-               lead: 'Обе руки вместе: большой палец здоровается по очереди с указательным, средним, безымянным и мизинцем, и снова с указательного. Правая и левая не меняются.',
-               leftNote: 'пальцы здороваются по очереди' };
+               lead: 'Обе руки вместе: большой палец здоровается по очереди с указательным, средним, безымянным и мизинцем, и снова с указательного. Правая и левая не меняются.' };
     } },
     // 5) Пальцы здороваются навстречу: одна рука от указательного, другая от мизинца, дальше — обратно без повтора крайних
     { id: 'hello_async', w: 1, make() {
@@ -429,8 +457,7 @@
                  const a = HELLO[path[i % 6]], b = HELLO[3 - path[i % 6]];
                  return leftFirst ? [a, b] : [b, a];
                }),
-               lead: `${who[0]} рука начинает с указательного, ${who[1]} — с мизинца. Дойдя до края, идите обратно (крайний палец не повторяется).`,
-               leftNote: 'пальцы здороваются туда и обратно' };
+               lead: `${who[0]} рука начинает с указательного, ${who[1]} — с мизинца. Дойдя до края, идите обратно (крайний палец не повторяется).` };
     } },
   ];
   // случайный сценарий с учётом весов
@@ -446,14 +473,17 @@
     gen() {
       const lvl = getLvl();
       const lvlId = Math.min(Math.max(lvl.id, 1), 4);
-      const pt = pickPattern();
-      const pat = pt.make();
-      const { steps, hint } = buildSteps(lvlId, pat.seq);
+      const round = lvlId >= 3 ? sessionRound(lvlId) : 0;     // номер сессии — для чередования режимов
+      if (lvlId === 4) {
+        const { steps, rule } = buildSteps4(round);
+        return rhythmTask(rule, steps, 4);
+      }
+      const pat = pickPattern().make();
+      const { steps, hint } = buildSteps(lvlId, pat.seq, round);
       const rules = {
         1: 'Повторяй позиции рук вслух со счётом. ' + pat.lead,
         2: pat.lead + ' Между сменами — хлопок.',
         3: pat.lead + ' Одновременно говори: ' + (hint || ''),
-        4: `Левая рука — ${pat.leftNote}, правая — число. Называй ЦВЕТ, которым написано число.`,
       }[lvlId];
       return rhythmTask(rules, steps, lvlId);
     }
@@ -468,7 +498,7 @@ CATS.bihem_match = {
 };
 
 const BM_PAIRS_ALL = [
-  { L:['кошка','дерево','море','небо'],    R:['пушистая','зелёное','солёное','облачное'], map:{кошка:'пушистая',дерево:'зелёное',море:'солёное',небо:'облачное'} },
+  { L:['кошка','дерево','море','небо'],    R:['синее','зелёное','пушистая','высокое'], map:{кошка:'пушистая',дерево:'высокое',море:'синее',небо:'синее'} },
   { L:['огонь','лёд','солнце','ночь'],     R:['холодный','горячий','яркое','тёмная'],  map:{огонь:'горячий',лёд:'холодный',солнце:'яркое',ночь:'тёмная'} },
   { L:['роза','слон','молния','пустыня'],  R:['быстрая','большой','жаркая','красивая'],map:{роза:'красивая',слон:'большой',молния:'быстрая',пустыня:'жаркая'} },
   { L:['снег','лес','птица','река'],       R:['поёт','белый','течёт','густой'],        map:{снег:'белый',лес:'густой',птица:'поёт',река:'течёт'} },
