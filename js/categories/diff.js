@@ -92,7 +92,23 @@ function diffGenerate(lvl) {
   return sc;
 }
 
+// Размеры и раскладка карточек. Если захотите, перенесите это в основной CSS и удалите функцию.
+function diffEnsureStyle() {
+  if (document.getElementById('diff-style')) return;
+  const st = document.createElement('style');
+  st.id = 'diff-style';
+  st.textContent = `
+#task-area .diff-wrap{display:flex;flex-direction:row;justify-content:center;align-items:flex-start;gap:24px;margin-top:12px}
+#task-area .diff-wrap>div{flex:1 1 0;min-width:0;max-width:480px;padding:12px;border:2px solid rgba(127,127,127,.35);border-radius:16px;background:rgba(127,127,127,.07)}
+#task-area .diff-lbl{text-align:center;font-weight:600;margin-bottom:8px}
+#task-area .diff-img{display:grid!important;grid-template-columns:repeat(var(--diff-cols),1fr)!important;gap:4px!important;width:min(100%,calc(var(--diff-cols)*84px))!important;margin:0 auto!important;container-type:inline-size}
+#task-area .diff-cell{display:flex!important;align-items:center;justify-content:center;aspect-ratio:1/1;width:auto!important;height:auto!important;line-height:1;font-size:clamp(24px,10vw,48px)!important;font-size:calc(100cqw/var(--diff-cols)*.62)!important}
+@media(max-width:640px){#task-area .diff-wrap{flex-direction:column;align-items:center;gap:22px}#task-area .diff-wrap>div{flex:none;width:100%}}`;
+  document.head.appendChild(st);
+}
+
 function renderDiff() {
+  diffEnsureStyle();
   const lvl = getLvl();
   const sc = diffGenerate(lvl);
   const memSec = Math.max(5, Math.round(20 * lvl.timerMul));
@@ -109,16 +125,51 @@ function diffBuildGrid(sc, modified, clickable) {
   ).join('');
 }
 
+// Карточка с одним полем (рамка отделяет поля друг от друга)
+function diffCard(sc, modified, clickable, label, id) {
+  return `<div class="diff-card" style="border:2px solid rgba(127,127,127,.4);border-radius:16px;padding:8px;background:rgba(127,127,127,.07);text-align:center">
+    <div class="diff-lbl" style="margin-bottom:6px">${label}</div>
+    <div class="diff-img"${id ? ` id="${id}"` : ''} style="--diff-cols:${sc.grid}">${diffBuildGrid(sc, modified, clickable)}</div>
+  </div>`;
+}
+
+// Размеры считаем по ширине экрана: клетки как можно крупнее.
+// Два поля — рядом, если клетки при этом остаются крупными (>= 56px), иначе в столбик.
+function diffFit() {
+  const area = document.getElementById('task-area');
+  if (!area) return;
+  const imgs = [...area.querySelectorAll('.diff-img')];
+  if (!imgs.length) return;
+  const cols = parseInt(imgs[0].style.getPropertyValue('--diff-cols')) || 5;
+  const gap = 4, pad = 20, sep = 28;                      // sep — расстояние между полями
+  const W = area.clientWidth || window.innerWidth;
+  const cellFor = w => Math.min(88, Math.floor((w - pad - gap * (cols - 1)) / cols));
+  const side = imgs.length === 2 && cellFor((W - sep) / 2) >= 56;
+  const cell = Math.max(36, cellFor(side ? (W - sep) / 2 : W));
+  imgs[0].closest('.diff-wrap').style.cssText =
+    `display:flex;flex-direction:${side ? 'row' : 'column'};gap:${sep}px;justify-content:center;align-items:center`;
+  imgs.forEach(img => {
+    img.style.display = 'grid';
+    img.style.gridTemplateColumns = `repeat(${cols}, ${cell}px)`;
+    img.style.gap = gap + 'px';
+    img.style.justifyContent = 'center';
+    img.querySelectorAll('.diff-cell').forEach(c => {     // по отдельным свойствам, чтобы не стереть отметки (outline, фон)
+      c.style.width = c.style.height = cell + 'px';
+      c.style.fontSize = Math.round(cell * 0.62) + 'px';
+      c.style.display = 'flex';
+      c.style.alignItems = c.style.justifyContent = 'center';
+      c.style.lineHeight = '1';
+    });
+  });
+}
+window.addEventListener('resize', diffFit);
+
 function diffShowMemorize(sc, secLeft) {
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">Запомни расположение — осталось <b id="diff-timer">${secLeft}</b> сек</div>
-    <div class="diff-wrap">
-      <div>
-        <div class="diff-lbl">Оригинал</div>
-        <div class="diff-img" style="--diff-cols:${sc.grid}">${diffBuildGrid(sc, false, false)}</div>
-      </div>
-    </div>
+    <div class="diff-wrap">${diffCard(sc, false, false, 'Оригинал')}</div>
     <button class="btn-sm" id="diff-skip-btn" style="display:block;margin:14px auto 0" onclick="diffSkipMemorize()">Готов, дальше →</button>`;
+  diffFit();
 
   let t = secLeft;
   STATE.scratch.timerId = setInterval(() => {
@@ -146,13 +197,10 @@ function diffShowReveal(sc) {
     <div class="task-q">${sc.hidden
       ? 'По памяти отметь <b>все изменения</b> и нажми «Готово»'
       : `По памяти найди <b>${nDiff} ${word}</b>`}</div>
-    <div class="diff-wrap" id="diff-pair">
-      <div>
-        <div class="diff-img" id="diff-mod" style="--diff-cols:${sc.grid}">${diffBuildGrid(sc, true, true)}</div>
-      </div>
-    </div>
+    <div class="diff-wrap" id="diff-pair">${diffCard(sc, true, true, 'Изменённое поле', 'diff-mod')}</div>
     <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">${sc.hidden ? 'Отмечено: 0' : `Найдено: 0 из ${nDiff}`}</div>
     ${sc.hidden ? '<button class="btn-sm" id="diff-done-btn" style="display:block;margin:12px auto 0" onclick="diffFinish()">Готово</button>' : ''}`;
+  diffFit();
 }
 
 function diffClick(el) {
@@ -212,12 +260,9 @@ function diffFinish() {
   document.getElementById('nxt-btn').style.display = 'block';
 }
 
-// На момент ответа: слева оригинал, справа изменённое поле — две карточки рядом
+// На момент ответа: оригинал и изменённое поле рядом (на узком экране — одно под другим), между ними заметный промежуток
 function diffShowPair() {
-  const sc = STATE.scratch.sc, wrap = document.getElementById('diff-pair');
-  wrap.style.cssText = 'display:flex;gap:12px;justify-content:center;align-items:flex-start;flex-wrap:nowrap';
-  wrap.firstElementChild.insertAdjacentHTML('afterbegin', '<div class="diff-lbl">Изменённое</div>');
-  wrap.insertAdjacentHTML('afterbegin', `<div><div class="diff-lbl">Оригинал</div><div class="diff-img" style="--diff-cols:${sc.grid}">${diffBuildGrid(sc, false, false)}</div></div>`);
-  const k = wrap.clientWidth / wrap.scrollWidth;       // на узком экране уменьшаем, чтобы обе карточки поместились рядом
-  if (k < 1) [...wrap.children].forEach(c => c.style.zoom = k);
+  const sc = STATE.scratch.sc;
+  document.getElementById('diff-pair').insertAdjacentHTML('afterbegin', diffCard(sc, false, false, 'Оригинал'));
+  diffFit();
 }
