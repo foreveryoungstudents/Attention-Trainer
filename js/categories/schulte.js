@@ -5,11 +5,11 @@ CATS.schulte5 = {
   gen() { return { type: 'schulte', size: 5, chaos: false }; }
 };
 
-/* ── SCHULTE 7x7 ── */
+/* ── SCHULTE 5x5 цветной (бывшая 7×7) ── */
 CATS.schulte7 = {
-  name: 'Шульте 7×7', desc: 'Сложная версия — 49 чисел',
+  name: 'Шульте 5×5 цветной', desc: 'Два цвета — числа по порядку',
   icon: '🟩', bg: '#faeeda', fg: '#633806',
-  gen() { return { type: 'schulte', size: 7, chaos: false }; }
+  gen() { return { type: 'schulte', size: 5, chaos: false, twoColors: true }; }
 };
 
 /* ── SCHULTE CHAOS ── */
@@ -43,8 +43,10 @@ const CHAOS_TRANSFORMS = [
   'rotate(180deg) scaleX(-1)',    // both
 ];
 
+const TWO_COLORS = ['#c0392b', '#185fa5']; // красный, синий
+
 function renderSchulte() {
-  const { size: sz, chaos } = STATE.curTask;
+  const { size: sz, chaos, twoColors } = STATE.curTask;
   const lvl = getLvl();
   const tot = sz * sz;
   const nums = shu([...Array(tot)].map((_, i) => i + 1));
@@ -78,12 +80,13 @@ function renderSchulte() {
     } else {
       d.style.fontSize = Math.max(13, cw * 0.38) + 'px';
       d.style.fontWeight = '600';
+      if (twoColors) d.style.color = pick(TWO_COLORS);
     }
     d.style.height = cw + 'px';
     d.textContent = n;
     d.onclick = () => {
       if (n === next) {
-        d.classList.add('hit'); d.onclick = null; next++;
+        d.classList.add('hit'); d.style.color = ''; d.onclick = null; next++;
         const el = document.getElementById('sc-next');
         if (el) el.textContent = next <= tot ? next : '✓';
         if (next > tot) {
