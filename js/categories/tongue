@@ -1,10 +1,10 @@
 /* ═══════════════════════════════════════
    СКОРОВОРКИ  (раздел «Речь и словесное внимание»)
-   1 ур.: панель звуков → короткая скороговорка: слушать (с регулятором скорости), записать себя, прослушать запись
+   1 ур.: панель звуков → короткая скороговорка: прочитать вслух, записать себя, прослушать запись
    2 ур.: метроном на 60 секунд со случайной короткой скороговоркой и меткой звука
    3 ур.: длинная скороговорка «снежным комом» (по долям, разделитель |)
-   4 ур.: длинная скороговорка целиком с вертикальной прокруткой: слушать, записать себя, прослушать
-   Проверки речи нет: оценка — самооценка (кнопки) либо выполнение шагов.
+   4 ур.: длинная скороговорка целиком с вертикальной прокруткой: прочитать вслух, записать себя, прослушать
+   Озвучки нет — только запись своего голоса и её прослушивание. Проверки речи нет: самооценка (кнопки) либо выполнение шагов.
 
    КАК ПОДКЛЮЧИТЬ
      index.html : <script src="js/categories/tongue.js"></script>
@@ -14,9 +14,7 @@
    КАК МЕНЯТЬ ТЕКСТЫ
      TG_LONG   — длинная скороговорка, нумерованные фрагменты (номер = позиция в списке, с 1).
                  «|» внутри фрагмента делит его на доли для снежного кома; без «|» делится по словам.
-     TG_SOUNDS — панель уровней 1–2: звук + номера фрагментов из TG_LONG, которые на него тренируют.
-     TG_AUDIO  — файлы озвучки. Ключ 'n2' — фрагмент №2, 'long' — весь текст целиком.
-                 Нет файла (или не загрузился) — читает голос браузера. */
+     TG_SOUNDS — панель уровней 1–2: звук + номера фрагментов из TG_LONG, которые на него тренируют. */
 (function () {
   const TG_LONG = [
     'В четверг четвёртого числа в четыре с че́твертью часа лигури́йский регулировщик регулировал в Лигу́рии.',  // 1
@@ -55,20 +53,14 @@
     { sound: 'Ж–П–Н', nums: [18] },
   ];
 
-  const TG_AUDIO = {
-    n2: 'audio/tongue_02.mp3',        // пример: фрагмент №2 (файл-заготовка, замените своей записью)
-    // n3: 'audio/tongue_03.mp3',
-    // long: 'audio/tongue_long.mp3',  // весь текст целиком (уровень 4)
-  };
-
   const SNOW_MAX = 14;      // сколько долей максимум в одном «снежном коме»
   const METRO_SEC = 60;     // длительность метронома (уровень 2)
+  const BPM_MIN = 40, BPM_MAX = 200, BPM_DEF = 100;   // диапазон темпа, ударов в минуту
 
   /* ── вспомогательное ── */
   const $ = id => document.getElementById(id);
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const flat = t => t.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();                   // для показа (ударения остаются)
-  const speakable = t => flat(t).replace(/\u0301/g, '');                                 // для озвучки (без значков ударения)
   const beatsOf = t => t.includes('|')
     ? t.split('|').map(x => x.trim()).filter(Boolean)
     : t.split(/\s+/).filter(w => w && !/^[—–-]+$/.test(w));
@@ -83,7 +75,7 @@
     if (S.dead) return;
     S.dead = true;
     clearInterval(S.watch); clearTimeout(S.metro); clearInterval(S.clock);
-    stopSpeech(S); recAbort(S);
+    recAbort(S);
     if (S.recUrl) { try { URL.revokeObjectURL(S.recUrl); } catch (e) {} S.recUrl = null; }
   }
   function watch(S) { S.watch = setInterval(() => { if (!alive(S)) cleanup(S); }, 200); }
@@ -96,57 +88,6 @@
     $('nxt-btn').style.display = 'block';
   }
 
-  /* ── озвучка: файл из TG_AUDIO, при его отсутствии — голос браузера ── */
-  function stopSpeech(S) {
-    S.playTok = (S.playTok || 0) + 1;
-    try { if (S.audioEl) { S.audioEl.pause(); S.audioEl = null; } } catch (e) {}
-    try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
-  }
-  function ruVoice(cb) {
-    const find = () => speechSynthesis.getVoices().find(v => /^ru/i.test(v.lang));
-    const v = find(); if (v) return cb(v);
-    let done = false;
-    const fin = () => { if (done) return; done = true; cb(find() || null); };
-    if (speechSynthesis.addEventListener) speechSynthesis.addEventListener('voiceschanged', fin);
-    setTimeout(fin, 1200);
-  }
-  // o: { key, parts[], rate(), onPart(i), onEnd(), onFail(msg) }
-  function speak(S, o) {
-    stopSpeech(S);
-    const tok = S.playTok;
-    const fallback = () => {
-      if (tok !== S.playTok) return;
-      if (!('speechSynthesis' in window)) return o.onFail('Озвучка недоступна в этом браузере.');
-      ruVoice(v => {
-        if (tok !== S.playTok) return;
-        if (!v) return o.onFail('Русский голос не найден на этом устройстве. Положите файл озвучки в папку audio/ (см. TG_AUDIO).');
-        let i = 0;
-        const next = () => {
-          if (tok !== S.playTok) return;
-          if (i >= o.parts.length) return o.onEnd();
-          const u = new SpeechSynthesisUtterance(speakable(o.parts[i]));
-          u.lang = 'ru-RU'; u.voice = v; u.rate = o.rate();
-          const idx = i;
-          u.onstart = () => { if (tok === S.playTok && o.onPart) o.onPart(idx); };
-          u.onend = () => { i++; next(); };
-          u.onerror = () => { if (tok === S.playTok) o.onFail('Не удалось воспроизвести озвучку.'); };
-          speechSynthesis.speak(u);
-        };
-        next();
-      });
-    };
-    const src = TG_AUDIO[o.key];
-    if (!src) return fallback();
-    const a = new Audio(src);
-    S.audioEl = a;
-    a.preservesPitch = a.mozPreservesPitch = a.webkitPreservesPitch = true;   // скорость меняем, высоту голоса — нет
-    a.playbackRate = o.rate();
-    a.onended = () => { if (tok === S.playTok) o.onEnd(); };
-    a.onerror = () => { if (tok === S.playTok) { S.audioEl = null; fallback(); } };
-    const p = a.play();
-    if (p && p.catch) p.catch(() => { if (tok === S.playTok) { S.audioEl = null; fallback(); } });
-  }
-
   /* ── запись голоса ── */
   function recStop(S) { try { if (S.rec && S.rec.state !== 'inactive') S.rec.stop(); } catch (e) {} }
   function recAbort(S) {
@@ -155,66 +96,36 @@
     if (S.stream) { S.stream.getTracks().forEach(t => t.stop()); S.stream = null; }
   }
 
-  /* ── блок «послушай — запиши — прослушай» (уровни 1 и 4) ──
-     getKey() — ключ озвучки, getParts() — список фрагментов для голоса браузера,
-     onPart(i) — подсветка читаемого фрагмента (уровень 4) */
+  /* ── блок «надиктуй — прослушай себя» (уровни 1 и 4) ── */
   function studioHTML() {
     const mk = (n, t) => `<div style="font-weight:600;margin:12px 0 6px"><span id="tg-m${n}" style="display:inline-block;width:20px;color:#2e9e4f"></span>${n}. ${t}</div>`;
     return `<div id="tg-studio">
-      ${mk(1, 'Послушай')}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button id="tg-play" style="${BTN}">▶ Слушать</button>
-        <button id="tg-stop" style="${BTN}">■ Стоп</button>
-        <span style="font-size:13px;color:var(--text3)">скорость</span>
-        <input id="tg-speed" type="range" min="0.5" max="1.5" step="0.1" style="width:110px">
-        <span id="tg-speedv" style="font-size:13px;min-width:34px"></span>
-      </div>
-      <div id="tg-say" style="font-size:13px;color:var(--text3);min-height:18px;margin-top:4px"></div>
-      ${mk(2, 'Надиктуй')}
+      ${mk(1, 'Прочитай вслух и запиши себя')}
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button id="tg-rec" style="${BTN}">● Запись</button>
         <button id="tg-recstop" style="${BTN}" disabled>■ Стоп</button>
         <span id="tg-rt" style="font-size:13px;color:var(--text3)"></span>
       </div>
       <div id="tg-recmsg" style="font-size:13px;color:var(--text3);min-height:18px;margin-top:4px"></div>
-      ${mk(3, 'Прослушай себя')}
+      ${mk(2, 'Прослушай себя')}
       <audio id="tg-aud" controls style="width:100%;display:none"></audio>
       <div style="margin-top:14px;text-align:center"><button id="tg-done" style="${BTN_MAIN};opacity:.45" disabled>Готово</button></div>
     </div>`;
   }
+  // o: { onDone() }
   function bindStudio(S, o) {
-    S.heard = false; S.recorded = false; S.played = false; S.micBad = false;
+    S.recorded = false; S.played = false; S.micBad = false;
     if (S.recUrl) { try { URL.revokeObjectURL(S.recUrl); } catch (e) {} S.recUrl = null; }
-    const rate = () => S.rate || 1;
     const upd = () => {
-      $('tg-m1').textContent = S.heard ? '✓' : '';
-      $('tg-m2').textContent = S.recorded ? '✓' : '';
-      $('tg-m3').textContent = S.played ? '✓' : '';
-      const ok = S.heard && (S.played || S.micBad);
+      $('tg-m1').textContent = S.recorded ? '✓' : '';
+      $('tg-m2').textContent = S.played ? '✓' : '';
+      const ok = S.played || S.micBad;                  // нет микрофона — можно завершить без записи
       const b = $('tg-done'); b.disabled = !ok; b.style.opacity = ok ? '1' : '.45';
     };
-    const say = t => { $('tg-say').textContent = t || ''; };
     const rmsg = t => { $('tg-recmsg').textContent = t || ''; };
-
-    const sp = $('tg-speed'); sp.value = rate();
-    const spv = $('tg-speedv'); spv.textContent = rate().toFixed(1) + '×';
-    sp.oninput = () => { S.rate = parseFloat(sp.value); spv.textContent = S.rate.toFixed(1) + '×'; if (S.audioEl) S.audioEl.playbackRate = S.rate; };
-
-    $('tg-play').onclick = () => {
-      recStop(S);
-      say('Слушаем…');
-      speak(S, {
-        key: o.getKey(), parts: o.getParts(), rate,
-        onPart: i => { if (o.onPart) o.onPart(i); },
-        onEnd: () => { S.heard = true; say('Прослушано. Теперь надиктуй сам(а).'); if (o.onPart) o.onPart(-1); upd(); },
-        onFail: m => { say(m); if (o.onPart) o.onPart(-1); }
-      });
-    };
-    $('tg-stop').onclick = () => { stopSpeech(S); say(''); if (o.onPart) o.onPart(-1); };
 
     const recBtn = $('tg-rec'), recStopBtn = $('tg-recstop');
     recBtn.onclick = async () => {
-      stopSpeech(S); say('');
       if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)) {
         S.micBad = true; rmsg('Запись недоступна в этом браузере — можно продолжить без неё.'); return upd();
       }
@@ -254,8 +165,8 @@
     $('tg-done').onclick = () => { if (!$('tg-done').disabled) o.onDone(); };
     upd();
   }
-  // при смене вида внутри карточки — остановить звук и запись
-  function resetMedia(S) { stopSpeech(S); recAbort(S); }
+  // при смене вида внутри карточки — остановить запись
+  function resetMedia(S) { recAbort(S); }
 
   /* ── УРОВЕНЬ 1: панель звуков ── */
   function renderL1(S) {
@@ -281,7 +192,7 @@
       <div style="font-size:20px;line-height:1.5;margin:14px 0">${esc(flat(TG_LONG[n - 1]))}</div>
       ${studioHTML()}`;
     $('tg-back').onclick = () => renderL1(S);
-    bindStudio(S, { getKey: () => 'n' + n, getParts: () => [TG_LONG[n - 1]], onDone: () => finish(S) });
+    bindStudio(S, { onDone: () => finish(S) });
   }
 
   /* ── УРОВЕНЬ 2: метроном ── */
@@ -296,17 +207,26 @@
       </div>
       <div id="tg-time" style="text-align:center;font-size:28px;font-weight:700">${fmt(METRO_SEC)}</div>
       <div style="height:6px;background:rgba(128,128,128,.2);border-radius:3px;margin:8px 0"><div id="tg-bar" style="height:100%;width:0;background:#7f77dd;border-radius:3px"></div></div>
-      <div style="display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px">
+      <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px">
         <span style="font-size:13px;color:var(--text3)">темп</span>
-        <input id="tg-bpm" type="range" min="60" max="160" step="5" value="100" style="width:140px">
-        <span id="tg-bpmv" style="font-size:13px;min-width:62px">100 уд/мин</span>
+        <button id="tg-bpm-minus" style="${BTN};padding:6px 12px;font-size:18px;line-height:1">−</button>
+        <input id="tg-bpm" type="range" min="${BPM_MIN}" max="${BPM_MAX}" step="5" value="${BPM_DEF}" style="width:150px">
+        <button id="tg-bpm-plus" style="${BTN};padding:6px 12px;font-size:18px;line-height:1">+</button>
+        <span id="tg-bpmv" style="font-size:13px;min-width:70px">${BPM_DEF} уд/мин</span>
       </div>
       <div style="text-align:center;margin-top:14px"><button id="tg-start" style="${BTN_MAIN}">Старт</button></div>`;
-    const bpm = $('tg-bpm');
-    bpm.oninput = () => { $('tg-bpmv').textContent = bpm.value + ' уд/мин'; };
+    // темп можно менять и до старта, и во время работы метронома (следующий щелчок уже в новом темпе)
+    S.bpm = BPM_DEF;
+    const setBpm = v => {
+      S.bpm = Math.min(BPM_MAX, Math.max(BPM_MIN, Math.round(v / 5) * 5));
+      $('tg-bpm').value = S.bpm; $('tg-bpmv').textContent = S.bpm + ' уд/мин';
+    };
+    $('tg-bpm').oninput = () => setBpm(+$('tg-bpm').value);
+    $('tg-bpm-minus').onclick = () => setBpm(S.bpm - 5);
+    $('tg-bpm-plus').onclick = () => setBpm(S.bpm + 5);
     $('tg-start').onclick = () => {
       if (S.running) return stopMetro(S, true);
-      startMetro(S, +bpm.value);
+      startMetro(S);
     };
   }
   function click(accent) {
@@ -323,18 +243,19 @@
     clearTimeout(S.metro); clearInterval(S.clock); S.running = false;
     if (reset && !S.dead) {
       $('tg-start').textContent = 'Старт'; $('tg-bar').style.width = '0'; $('tg-time').textContent = fmt(METRO_SEC);
-      $('tg-bpm').disabled = false; $('tg-dot').style.opacity = '.25';
+      $('tg-dot').style.opacity = '.25';
     }
   }
-  function startMetro(S, bpm) {
+  function startMetro(S) {
     try { const AC = window.AudioContext || window.webkitAudioContext; window.__tgAC = window.__tgAC || new AC(); if (window.__tgAC.resume) window.__tgAC.resume(); } catch (e) {}
     S.running = true;
-    $('tg-start').textContent = 'Стоп'; $('tg-bpm').disabled = true;
-    const iv = 60000 / bpm, t0 = performance.now() + 800;      // 0,8 с на подготовку
-    let k = 0;
+    $('tg-start').textContent = 'Стоп';
+    const t0 = performance.now() + 800;                        // 0,8 с на подготовку
+    const tEnd = t0 + METRO_SEC * 1000;                        // конец по часам — не зависит от темпа
+    let k = 0, next = t0;
     const tick = () => {
       if (!S.running || !alive(S)) return;
-      if (performance.now() - t0 >= METRO_SEC * 1000) {
+      if (performance.now() >= tEnd) {
         stopMetro(S, false);
         $('tg-time').textContent = '0:00'; $('tg-bar').style.width = '100%'; $('tg-dot').style.opacity = '.25';
         $('tg-start').style.display = 'none';
@@ -344,7 +265,8 @@
       click(k % 4 === 0);
       const dot = $('tg-dot'); dot.style.opacity = '1'; setTimeout(() => { if (!S.dead && $('tg-dot')) $('tg-dot').style.opacity = '.25'; }, 90);
       k++;
-      S.metro = setTimeout(tick, Math.max(0, t0 + k * iv - performance.now()));
+      next += 60000 / S.bpm;                                   // интервал до следующего щелчка — по текущему темпу
+      S.metro = setTimeout(tick, Math.max(0, next - performance.now()));
     };
     S.clock = setInterval(() => {
       if (!alive(S)) return;
@@ -403,19 +325,13 @@
         ${TG_LONG.map((t, i) => `<p id="tg-f${i}" style="margin:0 0 10px;padding:2px 6px;border-radius:6px"><span style="color:var(--text3);font-size:12px;margin-right:6px">${i + 1}</span>${esc(flat(t))}</p>`).join('')}
       </div>
       ${studioHTML()}`;
-    let cur = -1;
-    const mark = i => {
-      if (cur >= 0 && $('tg-f' + cur)) $('tg-f' + cur).style.background = '';
-      cur = i;
-      if (i >= 0 && $('tg-f' + i)) { const el = $('tg-f' + i); el.style.background = 'rgba(127,119,221,.28)'; const box = $('tg-scroll'); box.scrollTop = el.offsetTop - box.offsetTop - 8; }
-    };
-    bindStudio(S, { getKey: () => 'long', getParts: () => TG_LONG, onPart: mark, onDone: () => finish(S) });
+    bindStudio(S, { onDone: () => finish(S) });
   }
 
   /* ── вход ── */
   window.renderTongue = function () {
     const lvl = Math.min(Math.max(getLvl().id, 1), 4);
-    const S = STATE.scratch = { level: lvl, rate: 1 };
+    const S = STATE.scratch = { level: lvl };
     $('task-area').innerHTML = '<div id="tg-root"></div>';
     S.root = $('tg-root');
     watch(S);
