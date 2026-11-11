@@ -7,15 +7,6 @@
    4 ур.: длинная скороговорка целиком с вертикальной прокруткой: прочитать вслух, записать себя, прослушать
    Озвучки нет — только запись своего голоса и её прослушивание. Проверки речи нет: самооценка (кнопки) либо выполнение шагов.
 
-   КАК ПОДКЛЮЧИТЬ
-     index.html : <script src="js/categories/tongue.js"></script>
-     engine.js  : в noAutoTimer добавить 'tongue'; в loadTask добавить
-                  else if (tp === 'tongue') renderTongue();
-     registry.js: в раздел «Речь и словесное внимание» добавить 'tongue' в cats
-   КАК МЕНЯТЬ ТЕКСТЫ
-     TG_LONG   — длинная скороговорка, нумерованные фрагменты (номер = позиция в списке, с 1).
-                 «|» внутри фрагмента делит его на доли для снежного кома; без «|» делится по словам.
-     TG_SOUNDS — панель уровней 1–2: звук + номера фрагментов из TG_LONG, которые на него тренируют. */
 (function () {
   const TG_LONG = [
     'В четверг четвёртого числа в четыре с че́твертью часа лигури́йский регулировщик регулировал в Лигу́рии.',  // 1
@@ -446,9 +437,9 @@
     return cps;
   };
   const SN_BOX = 'text-align:center;background:var(--surface2);border-radius:12px;padding:2rem 1rem;min-height:110px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;word-break:break-word;';
-  const snChip = (txt, kind) => {
+  const snChip = (txt, kind, extra) => {
     const c = kind === 'ok' ? ['green-bg', 'green-bd', 'green'] : kind === 'no' ? ['red-bg', 'red-bd', 'red'] : ['surface2', 'border2', 'text2'];
-    return `<span style="background:var(--${c[0]});border:1px solid var(--${c[1]});color:var(--${c[2]});border-radius:8px;padding:4px 10px;font-size:15px;font-weight:600">${txt}</span>`;
+    return `<span style="background:var(--${c[0]});border:1px solid var(--${c[1]});color:var(--${c[2]});border-radius:8px;padding:4px 10px;font-size:15px;font-weight:600;${extra || ''}">${txt}</span>`;
   };
   const SN_WRAP = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;line-height:1.2';
   const SN_MUTED = 'font-size:14px;color:var(--text3);text-align:center;margin:6px 0;line-height:1.6';
@@ -518,8 +509,9 @@
       S.root.innerHTML = `
         <div class="task-q">Повтори скороговорку: нажимай части в том порядке, как они появлялись</div>
         <div style="font-size:14px;color:var(--text3);text-align:center;margin-bottom:8px">Частей: <b id="sb-cnt">0</b> из ${k} · одна ошибка заканчивает цепочку</div>
-        <div class="task-vis" id="sb-strip" style="min-height:56px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;line-height:1.2"></div>
-        <div id="sb-pool" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:1rem 0"></div>`;
+        <div id="sb-pool" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:1rem 0"></div>
+        <div style="font-size:13px;color:var(--text3);text-align:center">Уже нажато:</div>
+        <div class="task-vis" id="sb-strip" style="min-height:56px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;line-height:1.2"></div>`;
       const poolEl = $('sb-pool');
       pool.forEach(w => {
         const b = document.createElement('button');
@@ -566,11 +558,14 @@
           <div class="task-q">Вся скороговорка — ${S.N} частей без ошибок!</div>
           <div class="task-vis" style="font-size:18px;line-height:1.6;text-align:center">${esc(flat(TG_SNOW[S.idx]))}</div>`;
       } else {
-        const right = S.words.slice(0, k).map((w, i) => snChip(`${i + 1}. ${esc(w)}`, i < bad ? 'ok' : i === bad ? 'no' : 'idle')).join('');
+        const right = S.words.slice(0, k).map((w, i) => snChip(`${i + 1}. ${esc(w)}`, i <= bad ? 'ok' : 'idle', i === bad ? 'box-shadow:0 0 0 2px var(--green)' : '')).join('');
         S.root.innerHTML = `
           <div class="task-q">Удержано частей подряд: ${held} из ${S.N}</div>
-          <div style="${SN_MUTED}">На месте №${bad + 1} ты нажал «<b>${esc(S.taps[bad])}</b>», а нужно было «<b>${esc(S.words[bad])}</b>».</div>
-          <div style="${SN_MUTED}">Правильная цепочка (${k} частей):</div>
+          <div style="${SN_MUTED}">На месте №${bad + 1} ты нажала:</div>
+          <div style="${SN_WRAP}">${snChip(esc(S.taps[bad]), 'no')}</div>
+          <div style="${SN_MUTED}">а нужно было:</div>
+          <div style="${SN_WRAP}">${snChip(esc(S.words[bad]), 'ok')}</div>
+          <div style="${SN_MUTED}">Правильная цепочка (${k} частей), нужная часть обведена:</div>
           <div class="task-vis" style="${SN_WRAP}">${right}</div>
           <div style="${SN_MUTED}">Вся скороговорка целиком:</div>
           <div class="task-vis" style="font-size:16px;line-height:1.6;text-align:center">${esc(flat(TG_SNOW[S.idx]))}</div>`;
