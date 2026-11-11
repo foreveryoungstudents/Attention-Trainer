@@ -60,8 +60,9 @@
   /* ── вспомогательное ── */
   const $ = id => document.getElementById(id);
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const frag = n => (typeof TG_LONG[n - 1] === 'string' ? TG_LONG[n - 1] : '');            // фрагмент №n (пустой, если в списке дыра)
   const flat = t => t.replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();                   // для показа (ударения остаются)
-  const beatsOf = t => t.includes('|')
+  const beatsOf = t => (t = String(t == null ? '' : t)).includes('|')
     ? t.split('|').map(x => x.trim()).filter(Boolean)
     : t.split(/\s+/).filter(w => w && !/^[—–-]+$/.test(w));
   const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
@@ -189,7 +190,7 @@
         <span style="padding:4px 12px;border-radius:999px;background:#eeedfe;color:#3c3489;font-weight:700">${esc(snd.sound)}</span>
         <button id="tg-back" style="${BTN}">← Другие звуки</button>
       </div>
-      <div style="font-size:20px;line-height:1.5;margin:14px 0">${esc(flat(TG_LONG[n - 1]))}</div>
+      <div style="font-size:20px;line-height:1.5;margin:14px 0">${esc(flat(frag(n)))}</div>
       ${studioHTML()}`;
     $('tg-back').onclick = () => renderL1(S);
     bindStudio(S, { onDone: () => finish(S) });
@@ -201,7 +202,7 @@
     const n = pickShort(snd, -1);
     S.root.innerHTML = `
       <div style="text-align:center"><span style="padding:4px 12px;border-radius:999px;background:#eeedfe;color:#3c3489;font-weight:700">${esc(snd.sound)}</span></div>
-      <div style="font-size:22px;line-height:1.5;margin:14px 0;text-align:center">${esc(flat(TG_LONG[n - 1]))}</div>
+      <div style="font-size:22px;line-height:1.5;margin:14px 0;text-align:center">${esc(flat(frag(n)))}</div>
       <div style="text-align:center;margin:8px 0">
         <div id="tg-dot" style="display:inline-block;width:44px;height:44px;border-radius:50%;background:#7f77dd;opacity:.25;transition:opacity .08s"></div>
       </div>
@@ -280,10 +281,12 @@
   /* ── УРОВЕНЬ 3: снежный ком ── */
   function snowSource() {
     // берём подряд идущие фрагменты, пока не наберётся SNOW_MAX долей
-    const start = rnd(TG_LONG.length);
+    let start = rnd(TG_LONG.length);
+    while (!beatsOf(frag(start + 1)).length && start < TG_LONG.length - 1) start++;
     let beats = [], last = start;
     for (let j = start; j < TG_LONG.length; j++) {
-      const b = beatsOf(TG_LONG[j]);
+      const b = beatsOf(frag(j + 1));
+      if (!b.length) continue;
       if (beats.length + b.length > SNOW_MAX) {
         if (!beats.length) { beats = b.slice(0, SNOW_MAX); last = j; }
         break;
@@ -295,6 +298,7 @@
   function renderL3(S) {
     const src = snowSource();
     S.beats = src.beats; S.k = 1; S.stumbles = 0;
+    const range = `№${src.from}${src.to !== src.from ? '–' + src.to : ''}`;
     const draw = () => {
       const k = S.k, n = S.beats.length;
       const shown = S.beats.slice(0, k).map((b, i) => i === k - 1
@@ -302,7 +306,7 @@
         : esc(flat(b))).join(' ');
       S.root.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text3)">
-          <span>Фрагменты №${src.from}${src.to !== src.from ? '–' + src.to : ''}</span><span>Шаг ${k} из ${n}${S.stumbles ? ' · запинок: ' + S.stumbles : ''}</span>
+          <span>Фрагменты ${range}</span><span>Шаг ${k} из ${n}${S.stumbles ? ' · запинок: ' + S.stumbles : ''}</span>
         </div>
         <div style="height:6px;background:rgba(128,128,128,.2);border-radius:3px;margin:8px 0"><div style="height:100%;width:${k / n * 100}%;background:#7f77dd;border-radius:3px"></div></div>
         <div class="task-q" style="font-size:15px">Проговори весь текст с самого начала — быстро и без запинки</div>
@@ -314,7 +318,16 @@
       $('tg-ok').onclick = () => { if (S.k >= S.beats.length) { S.root.insertAdjacentHTML('beforeend', '<div style="text-align:center;font-weight:700;margin-top:12px">Готово ✔</div>'); $('tg-ok').disabled = true; $('tg-again').disabled = true; return finish(S); } S.k++; draw(); };
       $('tg-again').onclick = () => { S.stumbles++; draw(); };
     };
-    draw();
+    S.root.innerHTML = `
+      <div class="task-q">Снежный ком: скороговорка</div>
+      <div class="task-vis" style="line-height:1.7">
+        Текст будет расти <b>по одной доле</b>.<br>
+        На каждом шаге <b>проговори весь текст с самого начала</b> — быстро и без запинки.<br>
+        Получилось — нажми <b>«Без запинки ✓»</b>, запнулся — <b>«ещё раз ↻»</b>.<br>
+        Всего долей: <b>${S.beats.length}</b> (фрагменты ${range}).
+      </div>
+      <div style="text-align:center"><button class="next-btn" id="tg-begin">Начать</button></div>`;
+    $('tg-begin').onclick = draw;
   }
 
   /* ── УРОВЕНЬ 4: вся скороговорка с прокруткой ── */
@@ -322,7 +335,7 @@
     S.root.innerHTML = `
       <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Вся скороговорка — прокручивай вниз</div>
       <div id="tg-scroll" style="max-height:34vh;overflow-y:auto;border:1px solid rgba(128,128,128,.3);border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.6">
-        ${TG_LONG.map((t, i) => `<p id="tg-f${i}" style="margin:0 0 10px;padding:2px 6px;border-radius:6px"><span style="color:var(--text3);font-size:12px;margin-right:6px">${i + 1}</span>${esc(flat(t))}</p>`).join('')}
+        ${TG_LONG.map((t, i) => !frag(i + 1) ? '' : `<p id="tg-f${i}" style="margin:0 0 10px;padding:2px 6px;border-radius:6px"><span style="color:var(--text3);font-size:12px;margin-right:6px">${i + 1}</span>${esc(flat(frag(i + 1)))}</p>`).join('')}
       </div>
       ${studioHTML()}`;
     bindStudio(S, { onDone: () => finish(S) });
@@ -335,7 +348,13 @@
     $('task-area').innerHTML = '<div id="tg-root"></div>';
     S.root = $('tg-root');
     watch(S);
-    ({ 1: renderL1, 2: renderL2, 3: renderL3, 4: renderL4 })[lvl](S);
+    try {
+      ({ 1: renderL1, 2: renderL2, 3: renderL3, 4: renderL4 })[lvl](S);
+    } catch (e) {
+      console.error('Скороговорки:', e);
+      S.root.innerHTML = `<div class="task-q" style="color:#e24b4a">Не удалось открыть карточку</div>
+        <div class="task-vis" style="font-size:13px;word-break:break-word">${esc((e && e.message) || e)}</div>`;
+    }
   };
 
   CATS.tongue = {
