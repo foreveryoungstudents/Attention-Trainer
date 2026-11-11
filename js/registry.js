@@ -11,8 +11,8 @@ const SECTIONS = [
   { label: 'Математика',                  cats: ['oral_math','sequence'] },
   { label: 'Последовательности',          cats: ['matrix_logic','pattern','bongard'] }, 
   { label: 'Межполушарное взаимодействие',cats: ['stroop','bihem_hand'] },
-  { label: 'Речь и словесное внимание',   cats: ['text_attn','anagram','speech_odd'] },
-  { label: 'Мышление и логика',           cats: ['analogy','except','bihem_match','bihem_seq'] },
+  { label: 'Речь и словесное внимание',   cats: ['tongue','anagram','text_attn'] },
+  { label: 'Мышление и логика',           cats: ['analogy','except','speech_odd','bihem_match','bihem_seq'] },
 ];
 
 /* CATS is populated by each category file */

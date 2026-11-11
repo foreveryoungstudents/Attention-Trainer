@@ -83,12 +83,13 @@ function loadTask() {
   document.getElementById('task-area').innerHTML = '';
 
   const tp = STATE.curTask.type;
-  const noAutoTimer = ['schulte','memory','text_attn','diff','bihem_match','anagram','grid_memory','snowball','bihem_rhythm'];
+  const noAutoTimer = ['tongue','schulte','memory','text_attn','diff','bihem_match','anagram','grid_memory','snowball','bihem_rhythm'];
 
   if      (tp === 'schulte')     renderSchulte();
   else if (tp === 'memory')      renderMem1();
   else if (tp === 'text_attn')   renderTextAttn();
   else if (tp === 'diff')        renderDiff();
+  else if (tp === 'tongue')      renderTongue();
   else if (tp === 'bihem_match') renderBihemMatch();
   else if (tp === 'anagram')     renderAnagram();
   else if (tp === 'grid_memory') renderGridMemory();

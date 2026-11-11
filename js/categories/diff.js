@@ -29,63 +29,37 @@ const DIFF_THEMES = {
 };
 const DIFF_FAM = {};
 Object.values(DIFF_THEMES).forEach(fams => fams.forEach(f => f.forEach(e => DIFF_FAM[e] = f)));
-// По уровням: размер поля, число отличий, типы изменений, доля замен на похожий предмет.
+// По уровням: размер поля и число отличий. Изменение одно — замена на непохожую картинку.
 // Пустых клеток и повторяющихся картинок нет нигде: на поле всегда есть что запоминать,
 // а лишний «двойник» не выдаёт место замены.
 const DIFF_LEVELS = [
-  { g: 3, n: 1, types: ['replace'], sim: 0 },
-  { g: 3, n: 2, types: ['replace', 'swap'], sim: .5 },
-  { g: 4, n: 3, types: ['replace', 'swap'], sim: .7 },
-  { g: 4, n: 4, types: ['replace', 'swap'], sim: 1 }
+  { g: 3, n: 1 },
+  { g: 3, n: 2 },
+  { g: 4, n: 3 },
+  { g: 4, n: 4 }
 ];
 const DIFF_SEEN = new Set();   // уже показанные поля — чтобы не повторялись
 let DIFF_LAST_THEME = '';
 
-function diffNb(i, G) {
-  const r = Math.floor(i / G), c = i % G, a = [];
-  if (r > 0) a.push(i - G);
-  if (r < G - 1) a.push(i + G);
-  if (c > 0) a.push(i - 1);
-  if (c < G - 1) a.push(i + 1);
-  return a;
-}
-
 function diffTry(cfg) {
   const G = cfg.g, N = G * G, n = cfg.n;
-  // тема: не та же, что в прошлый раз, и достаточно большая, чтобы на поле не было одинаковых эмодзи
-  const names = Object.keys(DIFF_THEMES).filter(t => t !== DIFF_LAST_THEME && DIFF_THEMES[t].flat().length >= N);
-  const theme = pick(names);
+  // тема: не та же, что в прошлый раз, и достаточно большая: на поле нет одинаковых эмодзи и остаются свободные для замен
+  const names = Object.keys(DIFF_THEMES).filter(t => t !== DIFF_LAST_THEME && DIFF_THEMES[t].flat().length >= N + n);
+  const theme = names.length ? pick(names)
+    : Object.keys(DIFF_THEMES).sort((a, b) => DIFF_THEMES[b].flat().length - DIFF_THEMES[a].flat().length)[0];
   DIFF_LAST_THEME = theme;
   const fams = DIFF_THEMES[theme], flat = fams.flat();
   const orig = shu(flat).slice(0, N);
-  const mod = orig.slice(), used = new Set(), diffs = [];
+  const mod = orig.slice(), diffs = [];
   const taken = new Set(orig);                       // всё, что уже есть на поле: новая картинка не должна повторять ни одну из них
-  const free = () => [...Array(N).keys()].filter(i => !used.has(i));
-  const fresh = list => list.filter(x => !taken.has(x));
-  let guard = 0;
-  while (diffs.length < n && guard++ < 300) {
-    const t = guard > 100 ? 'replace' : pick(cfg.types);
-    if (t === 'replace') {
-      const cells = free(), wantSim = Math.random() < cfg.sim;
-      const simCells = wantSim ? cells.filter(i => fresh(DIFF_FAM[orig[i]]).length) : [];   // клетки, для которых есть свободный «похожий»
-      const c = pick(simCells.length ? simCells : cells), o = orig[c], fam = DIFF_FAM[o];
-      const far = fresh(fams.filter(f => f !== fam).flat());
-      let cand = simCells.length ? fresh(fam) : far;            // похожий (из того же семейства) или непохожий
-      if (!cand.length) cand = far.length ? far : fresh(flat);  // запасной вариант, если свободных нет
-      if (!cand.length) continue;
-      const e = pick(cand);
-      mod[c] = e; taken.add(e); used.add(c); diffs.push({ cells: [c], type: t });
-    } else {                                          // swap — два соседних предмета меняются местами (повторов не возникает)
-      for (const c of shu(free())) {
-        const ds = diffNb(c, G).filter(d => !used.has(d));
-        if (!ds.length) continue;
-        const d = pick(ds);
-        mod[c] = orig[d]; mod[d] = orig[c]; used.add(c); used.add(d); diffs.push({ cells: [c, d], type: t });
-        break;
-      }
-    }
+  for (const c of shu([...Array(N).keys()]).slice(0, n)) {
+    const fam = DIFF_FAM[orig[c]];
+    let cand = flat.filter(x => !taken.has(x) && !fam.includes(x));   // другое семейство той же темы
+    if (!cand.length) cand = flat.filter(x => !taken.has(x));          // запасной вариант
+    const e = pick(cand);
+    mod[c] = e; taken.add(e); diffs.push({ cells: [c] });
   }
-  return { grid: G, orig, mod, diffs, types: cfg.types };
+  return { grid: G, orig, mod, diffs };
 }
 
 function diffGenerate(lvl) {
@@ -95,21 +69,6 @@ function diffGenerate(lvl) {
   while (DIFF_SEEN.has(key) && ++tries < 40);
   DIFF_SEEN.add(key);
   return sc;
-}
-
-// Размеры и раскладка карточек. Если захотите, перенесите это в основной CSS и удалите функцию.
-function diffEnsureStyle() {
-  if (document.getElementById('diff-style')) return;
-  const st = document.createElement('style');
-  st.id = 'diff-style';
-  st.textContent = `
-#task-area .diff-wrap{display:flex;flex-direction:row;justify-content:center;align-items:flex-start;gap:24px;margin-top:12px}
-#task-area .diff-wrap>div{flex:1 1 0;min-width:0;max-width:480px;padding:12px;border:2px solid rgba(127,127,127,.35);border-radius:16px;background:rgba(127,127,127,.07)}
-#task-area .diff-lbl{text-align:center;font-weight:600;margin-bottom:8px}
-#task-area .diff-img{display:grid!important;grid-template-columns:repeat(var(--diff-cols),1fr)!important;gap:4px!important;width:min(100%,calc(var(--diff-cols)*84px))!important;margin:0 auto!important;container-type:inline-size}
-#task-area .diff-cell{display:flex!important;align-items:center;justify-content:center;aspect-ratio:1/1;width:auto!important;height:auto!important;line-height:1;font-size:clamp(24px,10vw,48px)!important;font-size:calc(100cqw/var(--diff-cols)*.62)!important}
-@media(max-width:640px){#task-area .diff-wrap{flex-direction:column;align-items:center;gap:22px}#task-area .diff-wrap>div{flex:none;width:100%}}`;
-  document.head.appendChild(st);
 }
 
 function renderDiff() {
@@ -138,51 +97,65 @@ function diffCard(sc, modified, clickable, label, id) {
   </div>`;
 }
 
+// Ширину окна задания меряем ДО вставки новых карточек. Если мерить после, браузер успевает посчитать
+// стили страницы, а потом клетки «доезжают» до нужного размера через её transition — это и есть моргание.
+function diffAreaW() {
+  const a = document.getElementById('task-area');
+  return (a && a.clientWidth) || window.innerWidth;
+}
+
 // Размеры считаем по ширине экрана: клетки как можно крупнее.
 // Два поля — рядом, если клетки при этом остаются крупными (>= 56px), иначе в столбик.
-function diffFit() {
+function diffFit(W) {
   const area = document.getElementById('task-area');
   if (!area) return;
   const imgs = [...area.querySelectorAll('.diff-img')];
   if (!imgs.length) return;
-  const cols = parseInt(imgs[0].style.getPropertyValue('--diff-cols')) || 5;
+  W = W || diffAreaW();
+  const cols = parseInt(imgs[0].style.getPropertyValue('--diff-cols')) || 4;
   const gap = 4, pad = 20, sep = 28;                      // sep — расстояние между полями
-  const W = area.clientWidth || window.innerWidth;
   const cellFor = w => Math.min(cols <= 3 ? 104 : 88, Math.floor((w - pad - gap * (cols - 1)) / cols));
   const side = imgs.length === 2 && cellFor((W - sep) / 2) >= 56;
   const cell = Math.max(36, cellFor(side ? (W - sep) / 2 : W));
+  const key = [cols, cell, side ? 1 : 0, imgs.length].join('|');
+  if (imgs.every(i => i.dataset.fit === key)) return;     // ничего не изменилось (например, лишнее событие resize) — не трогаем
   imgs[0].closest('.diff-wrap').style.cssText =
     `display:flex;flex-direction:${side ? 'row' : 'column'};gap:${sep}px;justify-content:center;align-items:center`;
   const gridW = cols * cell + (cols - 1) * gap;
   const force = (el, k, v) => el.style.setProperty(k, v, 'important');   // задаём размеры жёстко, чтобы стили страницы не сужали карточку
   imgs.forEach(img => {
     const card = img.closest('.diff-card');
+    force(card, 'transition', 'none');
     force(card, 'width', (gridW + pad) + 'px'); force(card, 'height', 'auto'); force(card, 'max-width', 'none');
     force(card, 'min-width', '0'); force(card, 'flex', 'none'); force(card, 'box-sizing', 'border-box');
+    force(img, 'transition', 'none');
     force(img, 'display', 'flex'); force(img, 'flex-wrap', 'wrap'); force(img, 'align-content', 'flex-start'); force(img, 'width', gridW + 'px'); force(img, 'height', 'auto'); force(img, 'max-width', 'none');
     force(img, 'max-height', 'none'); force(img, 'aspect-ratio', 'auto'); force(img, 'margin', '0 auto');
     // сетка собрана через flex-wrap: высота строки = высоте клетки, страница не может сжать строки и наложить клетки друг на друга
     force(img, 'gap', gap + 'px'); force(img, 'justify-content', 'center');
     img.querySelectorAll('.diff-cell').forEach(c => {     // по отдельным свойствам, чтобы не стереть отметки (outline, фон)
+      force(c, 'transition', 'background-color .15s, border-color .15s, outline-color .15s');   // цвет плавно, размер — никогда
       force(c, 'flex', 'none'); force(c, 'width', cell + 'px'); force(c, 'height', cell + 'px'); force(c, 'min-width', '0'); force(c, 'min-height', '0');
       force(c, 'aspect-ratio', 'auto'); force(c, 'box-sizing', 'border-box'); force(c, 'margin', '0'); force(c, 'padding', '0');
       force(c, 'font-size', Math.round(cell * 0.55) + 'px'); force(c, 'line-height', '1');
       force(c, 'display', 'flex'); force(c, 'align-items', 'center'); force(c, 'justify-content', 'center'); force(c, 'overflow', 'hidden');
     });
+    img.dataset.fit = key;
   });
 }
-window.addEventListener('resize', diffFit);
+window.addEventListener('resize', () => diffFit());
 
 function diffWord(n) { return `${n} ${n === 1 ? 'отличие' : n < 5 ? 'отличия' : 'отличий'}`; }
 
 function diffShowMemorize(sc, secLeft) {
+  const W = diffAreaW();                                // до вставки карточек (см. diffAreaW)
   const mine = STATE.scratch;                          // это задание; если оно сменилось, таймер сам останавливается
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">Запомни расположение — осталось <b id="diff-timer">${secLeft}</b> сек</div>
     <div style="text-align:center;font-size:15px;color:var(--text2);margin:-4px 0 8px">Потом нужно будет найти <b>${diffWord(mine.nDiff)}</b></div>
     <div class="diff-wrap">${diffCard(sc, false, false, 'Оригинал')}</div>
     <button class="btn-sm" id="diff-skip-btn" style="display:block;margin:14px auto 0" onclick="diffSkipMemorize()">Готов, дальше →</button>`;
-  diffFit();
+  diffFit(W);
 
   let t = secLeft;
   mine.timerId = setInterval(() => {
@@ -204,12 +177,13 @@ function diffSkipMemorize() {
 }
 
 function diffShowReveal(sc) {
+  const W = diffAreaW();
   const S = STATE.scratch;
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">По памяти найди <b>${diffWord(S.nDiff)}</b></div>
     <div class="diff-wrap" id="diff-pair">${diffCard(sc, true, true, 'Изменённое поле', 'diff-mod')}</div>
     <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">Найдено: 0 из ${S.nDiff}</div>`;
-  diffFit();
+  diffFit(W);
 }
 
 const diffCellEl = i => document.querySelector(`#diff-mod [data-i="${i}"]`);
@@ -225,7 +199,7 @@ function diffClick(el) {
     document.getElementById('diff-cnt').textContent = `Найдено: ${S.found} из ${S.nDiff}`;
     if (S.found >= S.nDiff) diffEnd(true);
   } else {                                             // первый неверный клик — задание окончено
-    el.style.background = '#f7c1c1';
+    el.classList.add('wc');
     diffEnd(false);
   }
 }
@@ -244,12 +218,13 @@ function diffEnd(ok) {
   diffShowPair();
   STATE.scTot++; if (ok) STATE.scOk++;
   updScore(); showFb(ok, '');
+  if (!ok) document.getElementById('fb').textContent = '✗ Пропущенные отличия отмечены оранжевым';
   document.getElementById('nxt-btn').style.display = 'block';
 }
 
 // На момент ответа: оригинал и изменённое поле рядом (на узком экране — одно под другим), между ними заметный промежуток
 function diffShowPair() {
-  const sc = STATE.scratch.sc;
+  const sc = STATE.scratch.sc, W = diffAreaW();
   document.getElementById('diff-pair').insertAdjacentHTML('afterbegin', diffCard(sc, false, false, 'Оригинал'));
-  diffFit();
+  diffFit(W);
 }
