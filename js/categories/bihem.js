@@ -273,8 +273,8 @@
   const toBeats = t => t.includes('|')
     ? t.split('|').map(x => x.trim()).filter(Boolean)
     : t.split(/\s+/).filter(w => w && !/^[—–-]+$/.test(w));
-  const ALPHABET = 'АБВГДЕЖЗИКЛМНОПРСТУФХЦЧШЭЮЯ'.split('');
-  const TOTAL = 30;      // смен позиций за задание
+  const ALPHABET = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.split('');
+  const TOTAL = 32;      // смен позиций за задание
   const STEP_MS = 2000;  // шаг = 1 с смена + 1 с задержка до следующей смены
 
   window.__bihem = window.__bihem || {};
