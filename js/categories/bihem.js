@@ -327,7 +327,7 @@
         let c;
         do { c = Math.floor(Math.random() * COLORS.length); } while (c === prevColor);
         prevColor = c;
-        st.num = 1 + Math.floor(Math.random() * 9);
+        st.num = 0 + Math.floor(Math.random() * 5);
         st.color = COLORS[c].hex;
       }
       steps.push(st);
