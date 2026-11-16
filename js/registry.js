@@ -5,9 +5,8 @@
 ═══════════════════════════════════════ */
 
 const SECTIONS = [
-  { label: 'Межполушарное взаимодействие',cats: ['stroop','bihem_hand'] },
-  { label: 'Таблицы Шульте',              cats: ['schulte5','schulte7','schulte_chaos'] },
-  { label: 'Внимание — базовые',          cats: ['focus','grid_search','diff'] },
+  { label: 'Гибкость',                   cats: ['stroop','bihem_hand'] },
+  { label: 'Внимание',                   cats: ['schulte5','focus','grid_search','diff'] },
   { label: 'Память',                      cats: ['grid_memory', 'memory', 'snowball'] },
   { label: 'Речь и словесное внимание',   cats: ['tongue','anagram'] },
   { label: 'Математика',                  cats: ['oral_math','sequence'] },
