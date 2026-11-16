@@ -1,17 +1,54 @@
 /* ═══════════════════════════════════════════════════════════
-   fit-task.js — автоподгонка задания под высоту окна.
-   Если содержимое окна не помещается без прокрутки, область
-   задания (#task-area) пропорционально уменьшается (CSS zoom),
-   чтобы вопрос, поле и кнопки ответа были видны одновременно.
+   fit-task.js
+   1) На компьютере окно задания открывается в полноэкранном
+      режиме браузера (как по F11) и закрывается вместе с ним.
+   2) Если содержимое всё равно не помещается без прокрутки,
+      область задания пропорционально уменьшается (CSS zoom).
    Работает для всех категорий; код категорий менять не нужно.
    Подключить в конце index.html:  <script src="js/fit-task.js"></script>
 ═══════════════════════════════════════════════════════════ */
 (function () {
-  const MIN_SCALE = 0.5;   // меньше этого не уменьшаем (иначе не прочитать) — дальше будет прокрутка
-  let queued = false;
+  const AUTO_FULLSCREEN = true;   // false — не включать полноэкранный режим
+  const DESKTOP_ONLY    = true;   // true — только на компьютере (на телефоне всё остаётся как есть)
+  const MIN_SCALE       = 0.5;    // меньше этого не уменьшаем — дальше будет прокрутка
 
+  let queued = false;
+  let wasOpen = false;
+
+  /* ── полноэкранный режим ── */
+  function isDesktop() {
+    return !DESKTOP_ONLY || window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  }
+
+  function enterFullscreen() {
+    const el = document.documentElement;
+    if (document.fullscreenElement || !isDesktop()) return;
+    const req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;
+    try {
+      const p = req.call(el, { navigationUI: 'hide' });
+      if (p && p.catch) p.catch(() => {});      // браузер мог отказать (нет «жеста» пользователя) — не страшно
+    } catch (e) {}
+  }
+
+  function leaveFullscreen() {
+    if (!document.fullscreenElement) return;
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if (ex) { try { const p = ex.call(document); if (p && p.catch) p.catch(() => {}); } catch (e) {} }
+  }
+
+  function syncFullscreen() {
+    const isOpen = !!document.querySelector('.modal-overlay.open');
+    if (AUTO_FULLSCREEN && isOpen && !wasOpen) enterFullscreen();
+    if (AUTO_FULLSCREEN && !isOpen && wasOpen) leaveFullscreen();
+    wasOpen = isOpen;
+  }
+
+  /* ── подгонка размера ── */
   function fit() {
     queued = false;
+    syncFullscreen();
+
     const modal = document.querySelector('.modal-overlay.open .modal');
     const area  = document.getElementById('task-area');
     if (!modal || !area) return;
@@ -35,12 +72,12 @@
   }
 
   function init() {
-    // следим за появлением нового задания, ответами, открытием окна
     new MutationObserver(schedule).observe(document.body, {
       subtree: true, childList: true,
       attributes: true, attributeFilter: ['class']
     });
     window.addEventListener('resize', schedule);
+    document.addEventListener('fullscreenchange', schedule);
     schedule();
   }
 
