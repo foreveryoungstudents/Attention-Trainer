@@ -1,4 +1,10 @@
-/* ── MEMORY (words) ── */
+/* ── MEMORY (words) ──
+   Замените этим блоком старые CATS.memory, renderMem1 и renderMem2.
+   Зависит от ваших функций: getLvl, r, shu, checkAns и объекта STATE.
+   Новое: ровно 4 варианта, правильные ответы всегда среди них,
+   на сложных уровнях нужно нажать оба слова по порядку,
+   таймер сам останавливается, если ученик ушёл с экрана. */
+
 CATS.memory = {
   name: 'Память', desc: 'Запомни слова — потом воспроизведи',
   icon: '🧠', bg: '#fbeaf0', fg: '#72243e',
@@ -8,18 +14,27 @@ CATS.memory = {
     const n = lvl.wordsN[0] + r(lvl.wordsN[1] - lvl.wordsN[0] + 1);
     const sel = [], p = [...pool];
     for (let i = 0; i < n; i++) { const idx = r(p.length); sel.push(p.splice(idx, 1)[0]); }
-    // level 3-4: hide multiple words
+
+    // уровни 3–4: скрываем два слова; первое слово списка не скрываем
     const hideCount = lvl.id >= 3 ? 2 : 1;
-    const hidIdxs = shu([...Array(n).keys()].slice(1)).slice(0, hideCount);
-    const hidden = hidIdxs.map(i => sel[i]);
-    const dis = p.slice(0, 3);
-    const opts = shu([...hidden, ...dis]).slice(0, 4);
+    // индексы скрытых слов — строго по порядку появления в списке
+    const hidIdxs = shu([...Array(n).keys()].slice(1))
+      .slice(0, hideCount)
+      .sort((a, b) => a - b);
+    const hidden = hidIdxs.map(i => sel[i]);   // в порядке, в котором их нужно назвать
+
+    // варианты: все скрытые слова + случайные отвлекающие, всего 4
+    const dis = shu(p).slice(0, 4 - hidden.length);
+    const opts = shu([...hidden, ...dis]);
+
     return {
       type: 'memory',
       words: sel, hidden: hidden[0], hidIdxs,
       hiddenAll: hidden,
       opts,
-      q: hidIdxs.length > 1 ? `Какое из слов пропущено <b>первым</b>?` : 'Какое слово пропущено?'
+      q: hidIdxs.length > 1
+        ? 'Нажми пропущенные слова <b>в том порядке</b>, в каком они стояли'
+        : 'Какое слово пропущено?'
     };
   }
 };
@@ -35,23 +50,64 @@ function renderMem1() {
     }</div>
     <div class="mem-cd" id="mem-cd">${secs}</div>
     <div style="font-size:14px;color:var(--text3);text-align:center">секунд на запоминание</div>`;
+
+  clearInterval(STATE.memTimer);            // на случай повторного запуска
   let s = secs;
-  const iv = setInterval(() => {
-    s--;
+  STATE.memTimer = setInterval(() => {
     const el = document.getElementById('mem-cd');
-    if (el) el.textContent = s;
-    if (s <= 0) { clearInterval(iv); renderMem2(); }
+    // ученик закрыл задание или перешёл к другому: тихо останавливаем таймер
+    if (!el || STATE.curTask !== t) { clearInterval(STATE.memTimer); return; }
+    s--;
+    el.textContent = s;
+    if (s <= 0) { clearInterval(STATE.memTimer); renderMem2(); }
   }, 1000);
 }
 
 function renderMem2() {
   const t = STATE.curTask;
-  const shown = [...t.words];
-  t.hidIdxs.forEach(i => shown[i] = '???');
+  t.step = 0;                               // сколько скрытых слов уже угадано
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">${t.q}</div>
-    <div class="task-vis" style="font-size:18px;line-height:2.2">${shown.join(' · ')}</div>
-    <div class="opts">${t.opts.map(o =>
-      `<button class="opt" onclick="checkAns(this,'${esc(o)}','${esc(t.hidden)}',true)">${o}</button>`
+    <div class="task-vis" id="mem-line" style="font-size:18px;line-height:2.2"></div>
+    <div class="opts">${t.opts.map((o, i) =>
+      `<button class="opt" onclick="memPick(this,${i})">${o}</button>`
     ).join('')}</div>`;
+  memDrawLine();
+}
+
+// Строка со словами: угаданные показываются жирным, остальные остаются «???»
+function memDrawLine() {
+  const t = STATE.curTask;
+  const line = t.words.map((w, i) => {
+    const k = t.hidIdxs.indexOf(i);
+    if (k === -1) return w;
+    return k < t.step ? `<b>${w}</b>` : '???';
+  });
+  document.getElementById('mem-line').innerHTML = line.join(' · ');
+}
+
+function memPick(btn, i) {
+  const t = STATE.curTask;
+  const picked = t.opts[i];
+  const need = t.hiddenAll[t.step];         // слово, которое ждём сейчас
+
+  // Ошибка: не то слово или нарушен порядок — задание завершено как неверное
+  if (picked !== need) {
+    checkAns(btn, picked, t.hiddenAll.join(' → '), true);
+    return;
+  }
+
+  t.step++;
+  memDrawLine();
+
+  // Угадано не последнее слово: фиксируем кнопку и ждём следующее
+  if (t.step < t.hiddenAll.length) {
+    btn.disabled = true;
+    btn.style.opacity = '.55';
+    btn.textContent = '✓ ' + picked;
+    return;
+  }
+
+  // Все слова нажаты в правильном порядке — задание выполнено
+  checkAns(btn, picked, picked, true);
 }
