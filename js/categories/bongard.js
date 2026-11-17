@@ -1,4 +1,27 @@
 /* ── BONGARD ── */
+/* стили задания (добавляются в страницу один раз) */
+(function () {
+  if (document.getElementById('bg-css')) return;
+  const st = document.createElement('style');
+  st.id = 'bg-css';
+  st.textContent = `
+    .bg-wrap { display:flex; align-items:stretch; gap:14px; }
+    .bg-panel { flex:1 1 0; min-width:0; background:var(--surface); border:1px solid var(--border);
+                border-radius:12px; padding:10px 10px 12px; }
+    .bg-lab { font-weight:700; font-size:18px; text-align:center; margin-bottom:8px; }
+    .bg-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
+    .bg-sep { flex:none; width:2px; background:var(--border2); border-radius:2px; }
+    .bg-q { width:150px; margin:20px auto 0; text-align:center; }
+    .bg-q-lab { font-weight:700; font-size:22px; color:var(--blue-bd); margin-bottom:4px; }
+    .bg-q-card { padding:6px; background:var(--surface); border:2px solid var(--blue-bd);
+                 border-radius:14px; box-shadow:0 0 0 4px var(--blue-bg); }
+    @media (max-width:520px) {
+      .bg-wrap { flex-direction:column; }
+      .bg-sep { width:auto; height:2px; }
+    }`;
+  document.head.appendChild(st);
+})();
+
 const BG_T = ['c','s','t'];                       // круг, квадрат, треугольник
 const BG_RED = '#d85a30', BG_BLUE = '#378add', BG_INK = 'currentColor';
 const bgRnd = (a, b) => a + Math.random() * (b - a);
@@ -177,9 +200,9 @@ CATS.bongard = {
     const [A, B] = gP === 'А' ? [P, N] : [N, P];
 
     const panel = (lab, cards) =>
-      `<div style="flex:1 1 150px;min-width:0">
-         <div style="font-weight:700;font-size:15px;margin-bottom:4px;text-align:center">${lab}</div>
-         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">${cards.map(svg).join('')}</div>
+      `<div class="bg-panel">
+         <div class="bg-lab">${lab}</div>
+         <div class="bg-cards">${cards.map(svg).join('')}</div>
        </div>`;
 
     const classify = Math.random() < .35;
@@ -194,8 +217,10 @@ CATS.bongard = {
         qc = bgSample(rule, isPos);
         if (!seen.has(bgSig(qc))) break;
       }
-      extra = `<div style="width:84px;margin:12px auto 0;text-align:center">
-                 <div style="font-weight:700;margin-bottom:3px">?</div>${svg(qc)}</div>`;
+      extra = `<div class="bg-q">
+                 <div class="bg-q-lab">?</div>
+                 <div class="bg-q-card">${svg(qc)}</div>
+               </div>`;
       q = 'К какой группе относится карточка <b>?</b>';
       ans = isPos ? gP : gN;
       opts = ['А','Б'];
@@ -221,7 +246,7 @@ CATS.bongard = {
 
     return {
       q,
-      vis: `<div style="display:flex;flex-wrap:wrap;gap:12px">${panel('А', A)}${panel('Б', B)}</div>${extra}`,
+      vis: `<div class="bg-wrap">${panel('А', A)}<div class="bg-sep"></div>${panel('Б', B)}</div>${extra}`,
       ans, opts, timer, explain
     };
   }
