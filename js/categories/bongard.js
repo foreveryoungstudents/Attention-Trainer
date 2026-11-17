@@ -153,7 +153,7 @@ function bgSample(rule, want) {
 }
 
 CATS.bongard = {
-  name: 'Тест Бонгарда', desc: 'Найди правило',
+  name: 'Найди правило', desc: 'Соотнеси карточку с группой',
   icon: '🧩', bg: '#eeedfe', fg: '#3c3489',
   gen() {
     const L = getLvl().id;
