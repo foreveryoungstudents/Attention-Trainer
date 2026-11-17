@@ -5,7 +5,7 @@
 ═══════════════════════════════════════ */
 
 const SECTIONS = [
-  { label: 'Гибкость',                   cats: ['stroop','bihem_hand'] },
+  { label: 'Гибкость',                   cats: ['bihem_hand','stroop'] },
   { label: 'Внимание',                   cats: ['schulte5','focus','grid_search','diff'] },
   { label: 'Память',                      cats: ['grid_memory', 'memory', 'snowball'] },
   { label: 'Речь и словесное внимание',   cats: ['tongue','anagram'] },
