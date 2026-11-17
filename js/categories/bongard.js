@@ -5,19 +5,34 @@
   const st = document.createElement('style');
   st.id = 'bg-css';
   st.textContent = `
-    .bg-wrap { display:flex; align-items:stretch; gap:14px; }
-    .bg-panel { flex:1 1 0; min-width:0; background:var(--surface); border:1px solid var(--border);
+    /* --c — размер одной карточки; и в группах, и у карточки «?» он один и тот же */
+    .bg-wrap { --c: clamp(40px, calc((min(100vw, 900px) - 3rem - 116px) / 7), 104px);
+               display:flex; align-items:center; justify-content:center; gap:12px; }
+    .bg-panel { flex:none; background:var(--surface); border:1px solid var(--border);
                 border-radius:12px; padding:10px 10px 12px; }
-    .bg-lab { font-weight:700; font-size:18px; text-align:center; margin-bottom:8px; }
-    .bg-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; }
-    .bg-sep { flex:none; width:2px; background:var(--border2); border-radius:2px; }
-    .bg-q { width:150px; margin:20px auto 0; text-align:center; }
-    .bg-q-lab { font-weight:700; font-size:22px; color:var(--blue-bd); margin-bottom:4px; }
-    .bg-q-card { padding:6px; background:var(--surface); border:2px solid var(--blue-bd);
-                 border-radius:14px; box-shadow:0 0 0 4px var(--blue-bg); }
-    @media (max-width:520px) {
-      .bg-wrap { flex-direction:column; }
-      .bg-sep { width:auto; height:2px; }
+    .bg-lab { font-weight:700; font-size:20px; text-align:center; margin-bottom:8px; }
+    .bg-cards { display:grid; grid-template-columns:repeat(3, var(--c)); gap:4px; }
+
+    /* средняя колонка: либо просто разделитель, либо карточка «?» между группами */
+    .bg-sep { flex:none; width:2px; align-self:stretch; background:var(--border2); border-radius:2px; }
+    .bg-q { flex:none; align-self:stretch; display:flex; flex-direction:column; align-items:center;
+            justify-content:center; padding:0 14px; border-left:2px solid var(--border2);
+            border-right:2px solid var(--border2); }
+    .bg-q-lab { font-weight:700; font-size:26px; line-height:1; color:var(--blue-bd); margin-bottom:8px; }
+    .bg-q-card { width:var(--c); outline:2px solid var(--blue-bd); outline-offset:4px; border-radius:8px; }
+
+    /* крупные кнопки ответа и компактнее вертикальные отступы — только в этом задании */
+    .modal-body:has(.bg-wrap) .task-vis { padding:.75rem; margin-bottom:0; }
+    .modal-body:has(.bg-wrap) .task-q { font-size:20px; margin-bottom:.6rem; }
+    .modal-body:has(.bg-wrap) .opts { margin-top:.9rem; }
+    .modal-body:has(.bg-wrap) .opt { font-size:22px; font-weight:600; padding:16px 14px; }
+
+    @media (max-width:560px) {
+      .bg-wrap { --c: min(100px, calc((100vw - 3rem - 40px) / 3)); flex-direction:column; }
+      .bg-sep { width:auto; height:2px; align-self:stretch; }
+      .bg-q { padding:12px 0; border-left:0; border-right:0; border-top:2px solid var(--border2);
+              border-bottom:2px solid var(--border2); flex-direction:row; gap:14px; }
+      .bg-q-lab { margin-bottom:0; }
     }`;
   document.head.appendChild(st);
 })();
@@ -206,7 +221,7 @@ CATS.bongard = {
        </div>`;
 
     const classify = Math.random() < .35;
-    let extra = '', q, ans, opts, explain;
+    let mid = '<div class="bg-sep"></div>', q, ans, opts, explain;
 
     if (classify) {
       const isPos = Math.random() < .5;
@@ -217,10 +232,10 @@ CATS.bongard = {
         qc = bgSample(rule, isPos);
         if (!seen.has(bgSig(qc))) break;
       }
-      extra = `<div class="bg-q">
-                 <div class="bg-q-lab">?</div>
-                 <div class="bg-q-card">${svg(qc)}</div>
-               </div>`;
+      mid = `<div class="bg-q">
+               <div class="bg-q-lab">?</div>
+               <div class="bg-q-card">${svg(qc)}</div>
+             </div>`;
       q = 'К какой группе относится карточка <b>?</b>';
       ans = isPos ? gP : gN;
       opts = ['А','Б'];
@@ -246,7 +261,7 @@ CATS.bongard = {
 
     return {
       q,
-      vis: `<div class="bg-wrap">${panel('А', A)}<div class="bg-sep"></div>${panel('Б', B)}</div>${extra}`,
+      vis: `<div class="bg-wrap">${panel('А', A)}${mid}${panel('Б', B)}</div>`,
       ans, opts, timer, explain
     };
   }
