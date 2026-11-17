@@ -586,7 +586,7 @@
   const HELLO = ['ok', 'ok_mid', 'ok_ring', 'ok_pinky'];   // большой + указательный … мизинец
 
   CATS.bihem_hand = {
-    name: 'Руки и ритм', desc: TOTAL + ' смен под ритм: следи за руками',
+    name: 'Пальчиковая гимнастика', desc: TOTAL + ' смены + ритм',
     icon: '✋', ...MENU,
     gen() {
       const lvl = getLvl();
