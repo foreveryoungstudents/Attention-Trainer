@@ -118,7 +118,7 @@ function renderAnagram() {
 
 /* ── SPEECH ODD ── */
 CATS.speech_odd = {
-  name: 'Лишнее слово', desc: 'Найди слово, лишнее по смыслу',
+  name: 'Лишнее слово', desc: 'Найди слово, лишнее по смыслу или общему признаку',
   icon: '🚫', bg: '#faece7', fg: '#712b13',
   gen() {
     const lvl = getLvl();
