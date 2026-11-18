@@ -9,7 +9,7 @@ const CARDS_PER_SESSION = 5;
 function renderLevelPicker() {
   document.getElementById('level-picker').innerHTML = LEVELS.map(l => `
     <button class="lvl-btn${STATE.level === l.id ? ' active' : ''}" onclick="setLevel(${l.id})">
-      <span class="lvl-emoji">${l.emoji}</span>
+      <span class="lvl-dot lvl-${l.id}" aria-hidden="true"></span>
       <span class="lvl-label">${l.label}</span>
     </button>`).join('');
 }
@@ -27,7 +27,7 @@ function renderGrid() {
     <div class="grid">${sec.cats.map(id => {
       const c = CATS[id];
       return `<div class="card" onclick="openCat('${id}')">
-        <div class="card-icon" style="background:${c.bg};color:${c.fg}">${c.icon}</div>
+        <div class="card-icon" style="background:${c.bg};color:${c.fg}">${catIcon(id, c.icon)}</div>
         <div class="card-name">${c.name}</div>
         <div class="card-desc">${c.desc}</div>
       </div>`;
@@ -130,7 +130,7 @@ function showSummary() {
       <div class="summary-stars">${stars}</div>
       <div class="summary-score">${STATE.scOk} из ${STATE.scTot}</div>
       <div class="summary-sub">${pct}% верных ответов</div>
-      <div style="font-size:14px;color:var(--text3);margin-top:6px">Уровень: ${lvl.emoji} ${lvl.label}</div>
+      <div style="font-size:14px;color:var(--text3);margin-top:6px">Уровень: <span class="lvl-dot lvl-${lvl.id}" aria-hidden="true"></span> ${lvl.label}</div>
       <button class="next-btn" style="margin-top:1.5rem" onclick="closeModal()">Завершить</button>
     </div>`;
   document.getElementById('fb').style.display = 'none';

@@ -2,52 +2,65 @@
    ATTENTION TRAINER — main styles
 ═══════════════════════════════════════ */
 
+/* Шрифт Manrope (как на главной странице) */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+/* ─── Светлая тема (по умолчанию) ───
+   Палитра: бежевый #d8cdb5 · песочный #cab181 · сланцевый #77898b
+            кирпичный #a14534 · терракота #c85f31 · приглушённый зелёный #7d8b7c */
 :root {
-  --bg: #f8f7f4;
-  --surface: #ffffff;
-  --surface2: #f1efe8;
-  --border: #e0ddd5;
-  --border2: #c8c5bb;
-  --text: #1a1917;
-  --text2: #5f5e5a;
-  --text3: #9a9892;
-  --green: #3b6d11; --green-bg: #eaf3de; --green-bd: #639922;
-  --red: #791f1f;   --red-bg: #fcebeb;   --red-bd: #a32d2d;
-  --blue: #0c447c;  --blue-bg: #e6f1fb;  --blue-bd: #378add;
-  --amber: #633806; --amber-bg: #faeeda; --amber-bd: #ba7517;
-  --teal-bd: #1d9e75;
-  --radius: 12px; --radius-lg: 18px;
-  --shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 16px rgba(0,0,0,.04);
+  color-scheme: light;
+  --bg: #d8cdb5; --surface: #f4efe3; --surface2: #ead9bd;
+  --border: #cab181; --border2: #b89c68;
+  --text: #2a2320; --text2: #46585a; --text3: #556462;
+  --title: #14284b; --subtitle: #556853;
+  --btn-bg: #14284b; --btn-text: #f1ead8; --btn-border: #14284b;
+  --stripe: #a14534; --hover-text: #a14534;
+  /* верно — приглушённый зелёный, ошибка — кирпичный,
+     выбор — сланцевый, подсказка — песочный/терракота */
+  --green: #3f5a3e; --green-bg: #dfe5d3; --green-bd: #7d8b7c;
+  --red: #7a2d20;   --red-bg: #f0d5cc;   --red-bd: #a14534;
+  --blue: #14284b;  --blue-bg: #cfd9d9;  --blue-bd: #77898b;
+  --amber: #6b4a1c; --amber-bg: #ecdcb8; --amber-bd: #c85f31;
+  --teal-bd: #7d8b7c;
+  --radius: 12px; --radius-lg: 14px;
+  --shadow: 0 7px 24px rgba(84, 60, 40, .12);
 }
 
-/* ─── Dark theme: атрибут data-theme ставит js/theme.js ─── */
+/* ─── Тёмная тема: атрибут data-theme ставит js/theme.js ─── */
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #161513; --surface: #201f1c; --surface2: #2a2926;
-  --border: #3a3935; --border2: #4d4b45;
-  --text: #f2f0ea; --text2: #b5b2a9; --text3: #8a877f;
-  --green: #a9d36f; --green-bg: #1f2d12; --green-bd: #639922;
-  --red:   #f4a8a8; --red-bg:   #341616; --red-bd:   #a32d2d;
-  --blue:  #9cc9f2; --blue-bg:  #10263b; --blue-bd:  #378add;
-  --amber: #f0c27a; --amber-bg: #33250f; --amber-bd: #ba7517;
-  --shadow: 0 1px 3px rgba(0,0,0,.4);
+  --bg: #0d1117; --surface: #151b23; --surface2: #212830;
+  --border: #2d343e; --border2: #3d444d;
+  --text: #f1ead8; --text2: #bcc8c2; --text3: #93a39d;
+  --title: #f1ead8; --subtitle: #a9bba8;
+  --btn-bg: #212830; --btn-text: #e9e1cf; --btn-border: #3d444d;
+  --stripe: #7e4733; --hover-text: #e3c4a8;
+  --green: #b9cdb0; --green-bg: #1a261d; --green-bd: #7d8b7c;
+  --red:   #f0b3a3; --red-bg:   #2b1512; --red-bd:   #a14534;
+  --blue:  #c9d3dc; --blue-bg:  #1c2430; --blue-bd:  #6f7f8a;
+  --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
+  --teal-bd: #7d8b7c;
+  --shadow: 0 7px 24px rgba(0, 0, 0, .35);
 }
 
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+body { font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; -webkit-text-size-adjust: 100%; }
+/* тонкая акцентная полоса сверху */
+body::before { content: ""; display: block; height: 6px; background: var(--stripe); }
+button { font-family: inherit; }
 
 /* ─── App shell ─── */
 .app { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
 
 /* ─── Header ─── */
 .header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; }
-.header-left h1 { font-size: 28px; font-weight: 600; }
-.header-left p { font-size: 14px; color: var(--text2); margin-top: 4px; }
-.rand-btn { display: flex; align-items: center; gap: 8px; background: var(--text); color: var(--bg); border: none; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
+.header-left h1 { font-size: clamp(24px, 5vw, 30px); font-weight: 800; letter-spacing: -.035em; line-height: 1.2; color: var(--title); }
+.header-left p { font-size: 14px; font-weight: 700; color: var(--subtitle); margin-top: 4px; }
+.rand-btn { display: flex; align-items: center; gap: 8px; background: var(--btn-bg); color: var(--btn-text); border: none; border-radius: 12px; padding: 12px 22px; font-size: 15px; font-weight: 500; cursor: pointer; white-space: nowrap; transition: opacity .15s; }
 .rand-btn:hover { opacity: .85; }
-.rand-btn svg { width: 18px; height: 18px; stroke: var(--bg); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.rand-btn svg { width: 18px; height: 18px; stroke: var(--btn-text); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* ─── Theme toggle ─── */
 .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
@@ -59,12 +72,12 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .level-bar-label { font-size: 13px; color: var(--text3); font-weight: 500; margin-right: 4px; }
 .lvl-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .15s; font-family: inherit; }
 .lvl-btn:hover { border-color: var(--text3); color: var(--text); }
-.lvl-btn.active { background: var(--text); border-color: var(--text); color: var(--bg); }
+.lvl-btn.active { background: var(--btn-bg); border-color: var(--btn-border); color: var(--btn-text); }
 .lvl-emoji { font-size: 16px; }
 .lvl-label { font-size: 14px; }
 
 /* ─── Section label ─── */
-.section-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin: 1.75rem 0 .7rem; }
+.section-label { font-size: 12px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; color: var(--text2); margin: 1.75rem 0 .7rem; }
 
 /* ─── Category grid ─── */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
@@ -74,8 +87,8 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; cursor: pointer; transition: border-color .15s, box-shadow .15s; display: flex; flex-direction: column; gap: 10px; }
 .card:hover { border-color: var(--border2); box-shadow: var(--shadow); }
 .card-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
-.card-name { font-size: 16px; font-weight: 600; }
-.card-desc { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.card-name { font-size: 16px; font-weight: 700; transition: color .2s ease; }
+.card-desc { font-size: 13px; font-weight: 500; color: var(--text2); line-height: 1.5; }
 
 /* ─── Modal overlay ─── */
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: stretch; justify-content: center; padding: 0; }
@@ -83,7 +96,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 
 .modal { background: var(--surface); border-radius: 0; width: 100%; max-width: none; height: 100vh; height: 100dvh; max-height: none; overflow-y: auto; box-shadow: none; display: flex; flex-direction: column; }
 .modal-head { padding: .85rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
-.modal-title { font-size: 19px; font-weight: 600; }
+.modal-title { font-size: 19px; font-weight: 800; letter-spacing: -.025em; color: var(--title); }
 .modal-badge { font-size: 12px; padding: 4px 12px; border-radius: 8px; font-weight: 500; }
 .modal-close { background: none; border: none; cursor: pointer; color: var(--text2); width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; transition: background .15s; }
 .modal-close:hover { background: var(--surface2); }
@@ -111,7 +124,7 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 
 .score-label { font-size: 14px; color: var(--text2); }
 .score-label b { color: var(--text); }
-.next-btn { background: var(--text); color: var(--bg); border: none; border-radius: 10px; padding: 10px 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity .15s; font-family: inherit; }
+.next-btn { background: var(--btn-bg); color: var(--btn-text); border: none; border-radius: 10px; padding: 10px 24px; font-size: 16px; font-weight: 500; cursor: pointer; transition: opacity .15s; font-family: inherit; }
 .next-btn:hover { opacity: .85; }
 
 /* ─── Schulte ─── */
@@ -121,13 +134,15 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 .sc-cell.hit { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); }
 .sc-cell.mis { background: var(--red-bg); border-color: var(--red-bd); color: var(--red); }
 .sc-cell.chaos { border: none; }
-.sc-cell.s-dark   { background: #1a1917; color: #f8f7f4; }
-.sc-cell.s-dark:hover { background: #2d2c29; }
+.sc-cell.s-dark   { background: #14284b; color: #f1ead8; }
+.sc-cell.s-dark:hover { background: #1d3866; }
+:root[data-theme="dark"] .sc-cell.s-dark { background: #2a323d; color: #e9e1cf; }
+:root[data-theme="dark"] .sc-cell.s-dark:hover { background: #343d4a; }
 .sc-cell.s-blue   { background: var(--blue-bg);  color: var(--blue); }
 .sc-cell.s-amber  { background: var(--amber-bg); color: var(--amber); }
 .sc-cell.s-green  { background: var(--green-bg); color: var(--green); }
-.sc-cell.s-coral  { background: #faece7; color: #712b13; }
-.sc-cell.s-purple { background: #eeedfe; color: #3c3489; }
+.sc-cell.s-coral  { background: #f3d9cb; color: #7a2d12; }
+.sc-cell.s-purple { background: #c9d1e0; color: #1f3566; }
 .sc-info { text-align: center; font-size: 15px; color: var(--text2); margin-bottom: .75rem; }
 .sc-target { font-size: 26px; font-weight: 700; color: var(--blue-bd); }
 
@@ -216,3 +231,57 @@ body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background
 /* ─── Small utility ─── */
 .btn-sm { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: 7px 14px; font-size: 14px; color: var(--text); cursor: pointer; font-family: inherit; }
 .btn-sm:hover { background: var(--surface2); }
+
+/* ─── Hover: меняется только цвет текста ─── */
+@media (hover: hover) {
+  .card:hover .card-name { color: var(--hover-text); }
+  .theme-btn:hover, .lvl-btn:not(.active):hover, .btn-sm:hover { color: var(--hover-text); }
+}
+
+/* ─── Правки по скриншоту ─── */
+
+/* Кнопки уровней — в ряд, с отступами */
+.level-bar > div,
+.level-bar .lvl-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lvl-btn { display: inline-flex; margin: 0 8px 8px 0; }
+.level-bar > div .lvl-btn,
+.level-bar .lvl-wrap .lvl-btn { margin: 0; }
+
+/* Цветные кружки уровней — приглушить */
+.lvl-emoji { filter: saturate(.55) brightness(.95); }
+
+/* Квадраты с эмодзи на карточках — в тон темы вместо светлых пастельных
+   (цвета задаются в разметке, поэтому !important) */
+.card-icon {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border2);
+}
+.card-icon { filter: saturate(.6) brightness(.92); }
+
+/* ─── Спокойные кнопки (без светлых пятен) ─── */
+.rand-btn { border: 1px solid var(--btn-border); }
+.rand-btn:hover, .next-btn:hover { opacity: .9; }
+
+/* ─── Названия карточек: приглушённая терракота в тёмной теме ─── */
+:root[data-theme="dark"] .card-name { color: #c9835f; }
+
+/* ─── Линейные значки вместо эмодзи ─── */
+:root { --icon-color: #c85f31; }
+:root[data-theme="dark"] { --icon-color: #c2ac80; }
+
+.card-icon { color: var(--icon-color) !important; filter: none; }
+.card-icon svg { width: 24px; height: 24px; }
+
+/* бейдж в окне задания — в тон темы вместо пастельных цветов из JS */
+.modal-badge { background: var(--surface2) !important; color: var(--text2) !important; border: 1px solid var(--border2); }
+
+/* кнопка темы: значок + подпись */
+.theme-btn { display: inline-flex; align-items: center; gap: 8px; }
+.theme-btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* уровни сложности — спокойные цветные точки вместо 🟢🟡🟠🔴 */
+.lvl-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; vertical-align: middle; }
+.lvl-dot.lvl-1 { background: #7d8b7c; }
+.lvl-dot.lvl-2 { background: #cab181; }
+.lvl-dot.lvl-3 { background: #c9835f; }
+.lvl-dot.lvl-4 { background: #a14534; }
