@@ -14,7 +14,7 @@
   --border: #cab181; --border2: #b89c68;
   --text: #2a2320; --text2: #46585a; --text3: #556462;
   --title: #14284b; --subtitle: #556853;
-  --btn-bg: #14284b; --btn-text: #f1ead8;
+  --btn-bg: #14284b; --btn-text: #f1ead8; --btn-border: #14284b;
   --stripe: #a14534; --hover-text: #a14534;
   /* верно — приглушённый зелёный, ошибка — кирпичный,
      выбор — сланцевый, подсказка — песочный/терракота */
@@ -31,15 +31,15 @@
 :root[data-theme="light"] { color-scheme: light; }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #060a16; --surface: #0d1427; --surface2: #16223f;
-  --border: #1c2a47; --border2: #2c3f66;
+  --bg: #0a0912; --surface: #121022; --surface2: #1b1833;
+  --border: #221f3b; --border2: #34305a;
   --text: #f1ead8; --text2: #bcc8c2; --text3: #93a39d;
   --title: #f1ead8; --subtitle: #a9bba8;
-  --btn-bg: #cab181; --btn-text: #12264a;
-  --stripe: #c85f31; --hover-text: #f1c9a8;
+  --btn-bg: #2c2951; --btn-text: #e9e1cf; --btn-border: #433e75;
+  --stripe: #7e4733; --hover-text: #e3c4a8;
   --green: #b9cdb0; --green-bg: #1a261d; --green-bd: #7d8b7c;
   --red:   #f0b3a3; --red-bg:   #2b1512; --red-bd:   #a14534;
-  --blue:  #c9d6dc; --blue-bg:  #14233f; --blue-bd:  #77898b;
+  --blue:  #c9d3dc; --blue-bg:  #1a1a38; --blue-bd:  #6f7f8a;
   --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
   --teal-bd: #7d8b7c;
   --shadow: 0 7px 24px rgba(0, 0, 0, .35);
@@ -72,7 +72,7 @@ button { font-family: inherit; }
 .level-bar-label { font-size: 13px; color: var(--text3); font-weight: 500; margin-right: 4px; }
 .lvl-btn { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 8px 16px; font-size: 14px; font-weight: 500; color: var(--text2); cursor: pointer; transition: all .15s; font-family: inherit; }
 .lvl-btn:hover { border-color: var(--text3); color: var(--text); }
-.lvl-btn.active { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-text); }
+.lvl-btn.active { background: var(--btn-bg); border-color: var(--btn-border); color: var(--btn-text); }
 .lvl-emoji { font-size: 16px; }
 .lvl-label { font-size: 14px; }
 
@@ -136,8 +136,8 @@ button { font-family: inherit; }
 .sc-cell.chaos { border: none; }
 .sc-cell.s-dark   { background: #14284b; color: #f1ead8; }
 .sc-cell.s-dark:hover { background: #1d3866; }
-:root[data-theme="dark"] .sc-cell.s-dark { background: #1c2a47; color: #f1ead8; }
-:root[data-theme="dark"] .sc-cell.s-dark:hover { background: #26375c; }
+:root[data-theme="dark"] .sc-cell.s-dark { background: #26234a; color: #e9e1cf; }
+:root[data-theme="dark"] .sc-cell.s-dark:hover { background: #302d5a; }
 .sc-cell.s-blue   { background: var(--blue-bg);  color: var(--blue); }
 .sc-cell.s-amber  { background: var(--amber-bg); color: var(--amber); }
 .sc-cell.s-green  { background: var(--green-bg); color: var(--green); }
@@ -256,4 +256,8 @@ button { font-family: inherit; }
   background: var(--surface2) !important;
   border: 1px solid var(--border2);
 }
-.card-icon .emoji, .card-icon { filter: none; }
+.card-icon { filter: saturate(.6) brightness(.92); }
+
+/* ─── Спокойные кнопки (без светлых пятен) ─── */
+.rand-btn { border: 1px solid var(--btn-border); }
+.rand-btn:hover, .next-btn:hover { opacity: .9; }
