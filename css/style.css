@@ -237,3 +237,23 @@ button { font-family: inherit; }
   .card:hover .card-name { color: var(--hover-text); }
   .theme-btn:hover, .lvl-btn:not(.active):hover, .btn-sm:hover { color: var(--hover-text); }
 }
+
+/* ─── Правки по скриншоту ─── */
+
+/* Кнопки уровней — в ряд, с отступами */
+.level-bar > div,
+.level-bar .lvl-wrap { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.lvl-btn { display: inline-flex; margin: 0 8px 8px 0; }
+.level-bar > div .lvl-btn,
+.level-bar .lvl-wrap .lvl-btn { margin: 0; }
+
+/* Цветные кружки уровней — приглушить */
+.lvl-emoji { filter: saturate(.55) brightness(.95); }
+
+/* Квадраты с эмодзи на карточках — в тон темы вместо светлых пастельных
+   (цвета задаются в разметке, поэтому !important) */
+.card-icon {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border2);
+}
+.card-icon .emoji, .card-icon { filter: none; }
