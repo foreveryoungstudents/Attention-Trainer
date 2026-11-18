@@ -261,3 +261,27 @@ button { font-family: inherit; }
 /* ─── Спокойные кнопки (без светлых пятен) ─── */
 .rand-btn { border: 1px solid var(--btn-border); }
 .rand-btn:hover, .next-btn:hover { opacity: .9; }
+
+/* ─── Названия карточек: приглушённая терракота в тёмной теме ─── */
+:root[data-theme="dark"] .card-name { color: #c9835f; }
+
+/* ─── Линейные значки вместо эмодзи ─── */
+:root { --icon-color: #c85f31; }
+:root[data-theme="dark"] { --icon-color: #c2ac80; }
+
+.card-icon { color: var(--icon-color) !important; filter: none; }
+.card-icon svg { width: 24px; height: 24px; }
+
+/* бейдж в окне задания — в тон темы вместо пастельных цветов из JS */
+.modal-badge { background: var(--surface2) !important; color: var(--text2) !important; border: 1px solid var(--border2); }
+
+/* кнопка темы: значок + подпись */
+.theme-btn { display: inline-flex; align-items: center; gap: 8px; }
+.theme-btn svg { width: 16px; height: 16px; flex: 0 0 auto; }
+
+/* уровни сложности — спокойные цветные точки вместо 🟢🟡🟠🔴 */
+.lvl-dot { display: inline-block; width: 11px; height: 11px; border-radius: 50%; flex: 0 0 auto; vertical-align: middle; }
+.lvl-dot.lvl-1 { background: #7d8b7c; }
+.lvl-dot.lvl-2 { background: #cab181; }
+.lvl-dot.lvl-3 { background: #c9835f; }
+.lvl-dot.lvl-4 { background: #a14534; }
