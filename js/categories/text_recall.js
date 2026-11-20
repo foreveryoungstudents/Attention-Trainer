@@ -5,7 +5,7 @@
           (фрагмент с подсветкой ответа) + «Вернуться» / «Далее».
 
    ПОДКЛЮЧЕНИЕ (3 шага):
-   1. Подключить файл после engine.js:  <script src="text_recall.js"></script>
+   1. Подключить файл ДО engine.js:  <script src="js/categories/text_recall.js"></script>
    2. В engine.js, там где по task.type вызывается отрисовка, добавить:
         text_recall: renderTextRecall
       (так же, как сейчас anagram → renderAnagram, speech_odd → renderExc)
@@ -230,8 +230,10 @@ CATS.text_recall = {
   icon: '👁️', bg: '#e1f5ee', fg: '#085041',
   gen() {
     const lvl = getLvl();
-    const avail = TR_ITEMS.filter(x => x.lvl <= lvl.id);
-    const pool = avail.length ? avail : TR_ITEMS;
+    // только фрагменты выбранного уровня (если их нет — ближайший меньший)
+    let pool = TR_ITEMS.filter(x => x.lvl === lvl.id);
+    for (let l = lvl.id - 1; !pool.length && l >= 1; l--) pool = TR_ITEMS.filter(x => x.lvl === l);
+    if (!pool.length) pool = TR_ITEMS;
     // не повторять недавние, пока не покажем весь пул
     let fresh = pool.filter(x => !TR_SEEN.includes(x));
     if (!fresh.length) { TR_SEEN.length = 0; fresh = pool; }
@@ -354,5 +356,7 @@ function trFinish(userAns) {
   document.getElementById('nxt-btn').style.display = 'block';   // «Далее»
 }
 
-// «Вернуться»: закрывает окно задания и возвращает к сетке категорий (engine.js)
-function trBack() { closeModal(); }
+// «Вернуться»: закрываем окно задания и возвращаемся к сетке категорий
+function trBack() {
+  if (typeof closeModal === 'function') closeModal();
+}
