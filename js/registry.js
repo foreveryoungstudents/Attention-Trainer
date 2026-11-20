@@ -11,7 +11,7 @@ const SECTIONS = [
   { label: 'Речь и словесное внимание',   cats: ['tongue','anagram'] },
   { label: 'Математика',                  cats: ['oral_math','sequence'] },
   { label: 'Последовательности',          cats: ['matrix_logic','pattern','bongard'] }, 
-  { label: 'Мышление и логика',           cats: ['text_attn','analogy','speech_odd'] },
+  { label: 'Мышление и логика',           cats: ['text_recall','analogy','speech_odd'] },
 ];
 
 /* CATS is populated by each category file */
