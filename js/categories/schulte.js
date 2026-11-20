@@ -5,6 +5,7 @@
    3 — 1, А, 2, Б, 3, В … 12, К, 13
    4 — хаос (шрифты, цвета, повороты)
    На уровнях 2–4 клик подсвечивается на долю секунды.
+   Внизу карточки — переключатель уровней: можно сменить уровень, не выходя из задания.
    Время каждого прохождения записывается (рекорд по уровню).
 ═══════════════════════════════════════════════════════════ */
 
@@ -139,11 +140,54 @@ function schulteInstallNextHook() {
   }, true);
 }
 
+/* ── Переключатель уровней (внизу карточки) ── */
+// стили добавляются отсюда один раз, чтобы не трогать style.css; цвета — из переменных темы
+function schulteInstallStyles() {
+  if (document.getElementById('schulte-style')) return;
+  const st = document.createElement('style');
+  st.id = 'schulte-style';
+  st.textContent = `
+    .sc-lvls { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; margin-top:18px; }
+    .sc-lvls-label { font-size:13px; font-weight:500; color:var(--text3); margin-right:2px; }
+    .sc-lvl { display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border2);
+      border-radius:10px; padding:8px 14px; font-family:inherit; font-size:14px; font-weight:500; color:var(--text2);
+      cursor:pointer; transition:all .15s; }
+    .sc-lvl b { font-weight:700; }
+    .sc-lvl:hover { border-color:var(--text3); color:var(--text); }
+    .sc-lvl.active { background:var(--btn-bg); border-color:var(--btn-border); color:var(--btn-text); }
+    .sc-lvl:focus-visible { outline:2px solid var(--blue-bd); outline-offset:2px; }
+    @media (hover:hover) { .sc-lvl:not(.active):hover { color:var(--hover-text); } }
+    @media (max-width:420px) { .sc-lvl { padding:7px 11px; font-size:13px; } }`;
+  document.head.appendChild(st);
+}
+
+function schulteSwitcherHtml(level) {
+  const btns = [1, 2, 3, 4].map(n => {
+    const on = n === level;
+    return `<button type="button" class="sc-lvl${on ? ' active' : ''}" data-l="${n}" aria-pressed="${on}"` +
+      ` title="${on ? 'Начать этот уровень заново' : 'Перейти на уровень ' + n}"><b>${n}</b> ${SCHULTE_TITLES[n]}</button>`;
+  }).join('');
+  return `<div class="sc-lvls" role="group" aria-label="Уровень Шульте"><span class="sc-lvls-label">Уровень:</span>${btns}</div>`;
+}
+
+// сменить уровень прямо в задании (текущее прохождение сбрасывается, в рекорды не идёт)
+function schulteSetLevel(n) {
+  if (SCHULTE_TIMER) clearInterval(SCHULTE_TIMER);
+  STATE.curTask = makeSchulteTask(n);
+  STATE.answered = false;
+  const nb = document.getElementById('nxt-btn');
+  if (nb) nb.style.display = 'none';
+  renderSchulte();
+  const b = document.querySelector('.sc-lvl[data-l="' + n + '"]');
+  if (b) b.focus({ preventScroll: true });     // чтобы можно было листать уровни с клавиатуры
+}
+
 /* ── Рендер ── */
 let SCHULTE_TIMER = null;
 
 function renderSchulte() {
   schulteInstallNextHook();
+  schulteInstallStyles();
 
   const task  = STATE.curTask;
   const level = task.level || getLvl().id;
@@ -174,7 +218,12 @@ function renderSchulte() {
     </div>
     <div class="schulte-grid" id="sg"
       style="grid-template-columns:repeat(${sz},${cw}px);max-width:${sz * (cw + 4) + 10}px;"></div>
-    <div class="sc-info" id="sc-time" style="margin-top:10px;font-size:14px"></div>`;
+    <div class="sc-info" id="sc-time" style="margin-top:10px;font-size:14px"></div>
+    ${schulteSwitcherHtml(level)}`;
+
+  area.querySelectorAll('.sc-lvl').forEach(b => {
+    b.onclick = () => schulteSetLevel(+b.dataset.l);
+  });
 
   SCHULTE_TIMER = setInterval(() => {
     const el = document.getElementById('sc-clock');
