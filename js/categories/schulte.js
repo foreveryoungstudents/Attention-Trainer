@@ -5,7 +5,7 @@
    3 — 1, А, 2, Б, 3, В … 12, К, 13
    4 — хаос (шрифты, цвета, повороты)
    На уровнях 2–4 клик подсвечивается на долю секунды.
-   Внизу карточки — переключатель уровней: можно сменить уровень, не выходя из задания.
+   В нижней панели (между «Верно» и «Далее») — переключатель уровней: на телефоне только цифры 1–4.
    Время каждого прохождения записывается (рекорд по уровню).
 ═══════════════════════════════════════════════════════════ */
 
@@ -140,34 +140,87 @@ function schulteInstallNextHook() {
   }, true);
 }
 
-/* ── Переключатель уровней (внизу карточки) ── */
+/* ── Переключатель уровней (нижняя панель карточки) ── */
 // стили добавляются отсюда один раз, чтобы не трогать style.css; цвета — из переменных темы
 function schulteInstallStyles() {
   if (document.getElementById('schulte-style')) return;
   const st = document.createElement('style');
   st.id = 'schulte-style';
   st.textContent = `
-    .sc-lvls { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; margin-top:18px; }
-    .sc-lvls-label { font-size:13px; font-weight:500; color:var(--text3); margin-right:2px; }
+    .sc-lvls { display:flex; flex-wrap:nowrap; gap:8px; justify-content:center; align-items:center; margin:0 auto; }
+    .sc-lvls-label { font-size:13px; font-weight:500; color:var(--text3); margin-right:2px; white-space:nowrap; }
     .sc-lvl { display:inline-flex; align-items:center; gap:6px; background:var(--surface); border:1px solid var(--border2);
       border-radius:10px; padding:8px 14px; font-family:inherit; font-size:14px; font-weight:500; color:var(--text2);
-      cursor:pointer; transition:all .15s; }
+      cursor:pointer; transition:all .15s; white-space:nowrap; }
     .sc-lvl b { font-weight:700; }
     .sc-lvl:hover { border-color:var(--text3); color:var(--text); }
     .sc-lvl.active { background:var(--btn-bg); border-color:var(--btn-border); color:var(--btn-text); }
+    :root[data-theme="dark"] .sc-lvl.active { border-color:var(--text3); color:var(--text); }
     .sc-lvl:focus-visible { outline:2px solid var(--blue-bd); outline-offset:2px; }
     @media (hover:hover) { .sc-lvl:not(.active):hover { color:var(--hover-text); } }
-    @media (max-width:420px) { .sc-lvl { padding:7px 11px; font-size:13px; } }`;
+    /* узкая панель и телефон: только цифры, переключатель — отдельной строкой над «Верно / Далее» */
+    @media (max-width:760px) {
+      .sc-has-lvls { flex-wrap:wrap; row-gap:10px; }
+      .sc-has-lvls > .sc-lvls { order:-1; flex:1 0 100%; margin:0; }
+    }
+    @media (max-width:600px) {
+      .sc-lvls-label, .sc-lvl-t { display:none; }
+      .sc-lvl { min-width:48px; min-height:42px; justify-content:center; padding:8px 0; font-size:17px; }
+    }`;
   document.head.appendChild(st);
 }
 
-function schulteSwitcherHtml(level) {
+function schulteSwitcherInner(level) {
   const btns = [1, 2, 3, 4].map(n => {
     const on = n === level;
     return `<button type="button" class="sc-lvl${on ? ' active' : ''}" data-l="${n}" aria-pressed="${on}"` +
-      ` title="${on ? 'Начать этот уровень заново' : 'Перейти на уровень ' + n}"><b>${n}</b> ${SCHULTE_TITLES[n]}</button>`;
+      ` aria-label="Уровень ${n}: ${SCHULTE_TITLES[n]}"` +
+      ` title="${on ? 'Начать этот уровень заново' : 'Уровень ' + n + ': ' + SCHULTE_TITLES[n]}">` +
+      `<b>${n}</b><span class="sc-lvl-t"> ${SCHULTE_TITLES[n]}</span></button>`;
   }).join('');
-  return `<div class="sc-lvls" role="group" aria-label="Уровень Шульте"><span class="sc-lvls-label">Уровень:</span>${btns}</div>`;
+  return `<span class="sc-lvls-label">Уровень:</span>${btns}`;
+}
+
+// ставит переключатель в нижнюю панель (рядом с кнопкой «Далее»); повторный вызов только обновляет его
+let SCHULTE_OBS = null;
+function schulteMountSwitcher(level) {
+  const nb = document.getElementById('nxt-btn');
+  const host = nb && nb.parentElement;
+  const area = document.getElementById('task-area');
+  if (!host || !area) return;
+
+  let box = document.getElementById('sc-lvls');
+  if (!box || box.parentElement !== host) {
+    if (box) box.remove();
+    box = document.createElement('div');
+    box.id = 'sc-lvls';
+    box.className = 'sc-lvls';
+    box.setAttribute('role', 'group');
+    box.setAttribute('aria-label', 'Уровень Шульте');
+    host.insertBefore(box, nb);
+    host.classList.add('sc-has-lvls');
+  }
+  box.innerHTML = schulteSwitcherInner(level);
+  box.querySelectorAll('.sc-lvl').forEach(b => {
+    b.onclick = () => schulteSetLevel(+b.dataset.l);
+  });
+
+  // другая категория перерисовала задание — убираем переключатель из панели
+  if (SCHULTE_OBS) SCHULTE_OBS.disconnect();
+  SCHULTE_OBS = new MutationObserver(() => {
+    if (!document.getElementById('sg')) schulteUnmountSwitcher();
+  });
+  SCHULTE_OBS.observe(area, { childList: true });
+}
+
+function schulteUnmountSwitcher() {
+  if (SCHULTE_OBS) { SCHULTE_OBS.disconnect(); SCHULTE_OBS = null; }
+  const box = document.getElementById('sc-lvls');
+  if (box) {
+    if (box.parentElement) box.parentElement.classList.remove('sc-has-lvls');
+    box.remove();
+  }
+  if (SCHULTE_TIMER) { clearInterval(SCHULTE_TIMER); }
 }
 
 // сменить уровень прямо в задании (текущее прохождение сбрасывается, в рекорды не идёт)
@@ -178,8 +231,8 @@ function schulteSetLevel(n) {
   const nb = document.getElementById('nxt-btn');
   if (nb) nb.style.display = 'none';
   renderSchulte();
-  const b = document.querySelector('.sc-lvl[data-l="' + n + '"]');
-  if (b) b.focus({ preventScroll: true });     // чтобы можно было листать уровни с клавиатуры
+  const bt = document.querySelector('.sc-lvl[data-l="' + n + '"]');
+  if (bt) bt.focus({ preventScroll: true });   // чтобы можно было листать уровни с клавиатуры
 }
 
 /* ── Рендер ── */
@@ -218,12 +271,9 @@ function renderSchulte() {
     </div>
     <div class="schulte-grid" id="sg"
       style="grid-template-columns:repeat(${sz},${cw}px);max-width:${sz * (cw + 4) + 10}px;"></div>
-    <div class="sc-info" id="sc-time" style="margin-top:10px;font-size:14px"></div>
-    ${schulteSwitcherHtml(level)}`;
+    <div class="sc-info" id="sc-time" style="margin-top:10px;font-size:14px"></div>`;
 
-  area.querySelectorAll('.sc-lvl').forEach(b => {
-    b.onclick = () => schulteSetLevel(+b.dataset.l);
-  });
+  schulteMountSwitcher(level);
 
   SCHULTE_TIMER = setInterval(() => {
     const el = document.getElementById('sc-clock');
@@ -300,6 +350,7 @@ function renderSchulte() {
           STATE.answered = true;
           updScore();
           document.getElementById('nxt-btn').style.display = 'block';
+          schulteMountSwitcher(level);
         }
       } else {
         errors++;
