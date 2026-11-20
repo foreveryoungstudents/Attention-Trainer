@@ -259,6 +259,17 @@ function trCheck(item, input) {
   return { ok: hit === item.keys.length, hit, total: item.keys.length };
 }
 
+
+// предложение из текста, в котором находится подсвеченный фрагмент
+// (если не нашли или оно слишком длинное — берём эталонный ответ a)
+function trSentence(item) {
+  const hl = (item.hl || [])[0];
+  if (!hl) return item.a;
+  const parts = item.text.split(/(?<=[.!?…])\s+(?=[«"—–A-ZА-ЯЁ])/);
+  const found = parts.find(p => p.includes(hl));
+  return found && found.length <= 220 ? found.trim() : item.a;
+}
+
 function trHighlight(item) {
   let html = trEsc(item.text);
   (item.hl || []).forEach(h => {
@@ -275,14 +286,14 @@ function trHighlight(item) {
   st.textContent = `
     .tr-text{text-align:left;font-size:17px;line-height:1.75;padding:4px 2px}
     .tr-src{font-size:13px;color:var(--text3,#888);margin-top:6px;text-align:left}
-    .tr-hl{background:#fde68a;color:inherit;border-radius:3px;padding:0 2px}
+    .tr-hl{background:var(--amber-bg);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber-bd);border-radius:3px;padding:0 2px}
     .tr-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
     .tr-input{width:100%;box-sizing:border-box;font-size:17px;padding:10px 12px;border-radius:10px;
       border:1px solid var(--border,#c8c8c0);background:transparent;color:inherit;margin-top:12px}
     .tr-res{margin-top:12px;padding:10px 12px;border-radius:10px;text-align:left;font-size:15px;line-height:1.5}
-    .tr-res.ok{background:#e1f5ee;color:#085041}
-    .tr-res.no{background:#faece7;color:#712b13}
-    .tr-res.part{background:#faeeda;color:#633806}
+    .tr-res.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
+    .tr-res.no{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
+    .tr-res.part{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
   `;
   document.head.appendChild(st);
 })();
@@ -343,20 +354,13 @@ function trFinish(userAns) {
     <div class="tr-res ${cls}">
       <div><b>${msg}</b></div>
       ${userAns ? `<div style="margin-top:4px">Твой ответ: ${trEsc(userAns)}</div>` : ''}
-      <div style="margin-top:4px">Правильный ответ: <b>${trEsc(it.a)}</b></div>
+      <div style="margin-top:4px">Правильный ответ: <b>${trEsc(trSentence(it))}</b></div>
     </div>
     <div class="task-vis tr-text" style="margin-top:12px">${trHighlight(it)}</div>
-    <div class="tr-src">${trEsc(it.src)}</div>
-    <div class="tr-row">
-      <button class="btn-sm" onclick="trBack()">← Вернуться</button>
-    </div>`;
+    <div class="tr-src">${trEsc(it.src)}</div>`;
 
   updScore();
-  showFb(r.ok, it.a);
+  // вердикт уже показан в карточке выше, поэтому общую плашку #fb не выводим
+  document.getElementById('fb').style.display = 'none';
   document.getElementById('nxt-btn').style.display = 'block';   // «Далее»
-}
-
-// «Вернуться»: закрываем окно задания и возвращаемся к сетке категорий
-function trBack() {
-  if (typeof closeModal === 'function') closeModal();
 }
