@@ -233,7 +233,6 @@ CATS.text_recall = {
     const avail = TR_ITEMS.filter(x => x.lvl <= lvl.id);
     const pool = avail.length ? avail : TR_ITEMS;
     // не повторять недавние, пока не покажем весь пул
-    TR_SEEN.length = Math.min(TR_SEEN.length, pool.length - 1 < 0 ? 0 : TR_SEEN.length);
     let fresh = pool.filter(x => !TR_SEEN.includes(x));
     if (!fresh.length) { TR_SEEN.length = 0; fresh = pool; }
     const item = pick(fresh);
@@ -355,9 +354,5 @@ function trFinish(userAns) {
   document.getElementById('nxt-btn').style.display = 'block';   // «Далее»
 }
 
-// «Вернуться»: подставьте сюда функцию вашего движка, которая открывает меню категорий.
-function trBack() {
-  const names = ['goHome', 'showMenu', 'goMenu', 'backToMenu', 'toMenu', 'showHome', 'home'];
-  for (const n of names) if (typeof window[n] === 'function') return window[n]();
-  console.warn('trBack: не найдена функция возврата в меню — впишите её в text_recall.js');
-}
+// «Вернуться»: закрывает окно задания и возвращает к сетке категорий (engine.js)
+function trBack() { closeModal(); }
