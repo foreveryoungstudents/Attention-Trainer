@@ -44,11 +44,29 @@ function openCat(id) {
   startSess();
 }
 
-/* ─── Random set: ONE task from each section ─── */
+/* ─── Random set: RANDOM_SET_SIZE заданий из разных разделов ───
+   Все задания идут на активном уровне (STATE.level),
+   категории не повторяются, пустые/несуществующие id пропускаются. */
+const RANDOM_SET_SIZE = 5;
+
+function shuffle(a) {
+  const arr = [...a];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = r(i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function startRandom() {
-  STATE.sessCats = shu(
-    SECTIONS.map(sec => CATS[pick(sec.cats)])
-  );
+  // по одной случайной валидной категории из каждого раздела
+  const picks = SECTIONS
+    .map(sec => sec.cats.filter(id => id && CATS[id]))
+    .filter(ids => ids.length)
+    .map(ids => CATS[pick(ids)]);
+
+  // берём ровно RANDOM_SET_SIZE разных разделов
+  STATE.sessCats = shuffle(picks).slice(0, RANDOM_SET_SIZE);
   STATE.sessIdx = 0; STATE.scOk = 0; STATE.scTot = 0;
   startSess();
 }
