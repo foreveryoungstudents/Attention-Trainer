@@ -175,6 +175,13 @@ button { font-family: inherit; }
 .diff-cell.found { border-color: var(--green-bd); background: var(--green-bg); }
 .diff-cell.wc    { background: var(--red-bg); border-color: var(--red-bd); }
 .diff-lbl { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 8px; font-weight: 600; }
+/* карточка поля: толщина рамки и padding (2px + 8px) учитывает diffFit() в diff.js — не менять без правки pad */
+.diff-card { border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 8px; background: var(--surface); box-shadow: var(--shadow); text-align: center; }
+.diff-card .diff-lbl { margin-bottom: 6px; }
+.diff-hint { text-align: center; font-size: 15px; color: var(--text2); margin: -4px 0 8px; }
+.diff-cnt  { text-align: center; font-size: 14px; color: var(--text2); margin-top: 10px; }
+.diff-skip { display: block; margin: 14px auto 0; }
+.diff-miss { outline: 3px solid var(--amber-bd); outline-offset: -3px; }   /* пропущенные отличия */
 
 @media (max-width: 600px) {
   .diff-wrap { gap: 14px; }
