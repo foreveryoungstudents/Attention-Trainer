@@ -367,5 +367,11 @@ button { font-family: inherit; }
 /* ход ритма */
 .bh-prog   { height: 6px; background: var(--border); border-radius: 3px; margin: var(--bh-gap) 0 16px; }
 .bh-prog > div { height: 100%; width: 0; background: var(--lvl-1); border-radius: 3px; }
-.bh-foot   { display: flex; justify-content: space-between; align-items: center; }
-.bh-cnt    { font-size: 13px; color: var(--text3); }
+.bh-cnt    { text-align: center; font-size: 13px; color: var(--text3); }
+.bh-ctl    { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+.bh-ctl .btn-sm:disabled { opacity: .45; cursor: default; }
+.bh-tempo  { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; font-size: 14px; color: var(--text2); }
+.bh-tempo input[type="range"] { width: min(260px, 50%); accent-color: var(--btn-bg); }
+.bh-tempo b { color: var(--text); }
+/* в ритм-карточках таймер не нужен — ориентир по числу смен */
+.modal:has(.bh) .tbar-wrap { display: none; }
