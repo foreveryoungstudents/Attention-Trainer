@@ -70,7 +70,7 @@ function updateBar(left, total) {
   const bar = document.getElementById('tbar');
   if (!bar) return;
   bar.style.width = p + '%';
-  bar.style.background = p > 50 ? '#1d9e75' : p > 25 ? '#ba7517' : '#d85a30';
+  bar.dataset.state = p > 50 ? 'ok' : p > 25 ? 'mid' : 'low';   // цвета — в css/style.css (.tbar)
 }
 
 /* ─── Score ─── */

@@ -91,8 +91,8 @@ function diffBuildGrid(sc, modified, clickable) {
 
 // Карточка с одним полем (рамка отделяет поля друг от друга)
 function diffCard(sc, modified, clickable, label, id) {
-  return `<div class="diff-card" style="border:2px solid rgba(127,127,127,.4);border-radius:16px;padding:8px;background:rgba(127,127,127,.07);text-align:center">
-    <div class="diff-lbl" style="margin-bottom:6px">${label}</div>
+  return `<div class="diff-card">
+    <div class="diff-lbl">${label}</div>
     <div class="diff-img"${id ? ` id="${id}"` : ''} style="--diff-cols:${sc.grid}">${diffBuildGrid(sc, modified, clickable)}</div>
   </div>`;
 }
@@ -152,9 +152,9 @@ function diffShowMemorize(sc, secLeft) {
   const mine = STATE.scratch;                          // это задание; если оно сменилось, таймер сам останавливается
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">Запомни расположение — осталось <b id="diff-timer">${secLeft}</b> сек</div>
-    <div style="text-align:center;font-size:15px;color:var(--text2);margin:-4px 0 8px">Потом нужно будет найти <b>${diffWord(mine.nDiff)}</b></div>
+    <div class="diff-hint">Потом нужно будет найти <b>${diffWord(mine.nDiff)}</b></div>
     <div class="diff-wrap">${diffCard(sc, false, false, 'Оригинал')}</div>
-    <button class="btn-sm" id="diff-skip-btn" style="display:block;margin:14px auto 0" onclick="diffSkipMemorize()">Готов, дальше →</button>`;
+    <button class="btn-sm diff-skip" id="diff-skip-btn" onclick="diffSkipMemorize()">Готов, дальше →</button>`;
   diffFit(W);
 
   let t = secLeft;
@@ -182,7 +182,7 @@ function diffShowReveal(sc) {
   document.getElementById('task-area').innerHTML = `
     <div class="task-q">По памяти найди <b>${diffWord(S.nDiff)}</b></div>
     <div class="diff-wrap" id="diff-pair">${diffCard(sc, true, true, 'Изменённое поле', 'diff-mod')}</div>
-    <div style="text-align:center;font-size:14px;color:var(--text2);margin-top:10px" id="diff-cnt">Найдено: 0 из ${S.nDiff}</div>`;
+    <div class="diff-cnt" id="diff-cnt">Найдено: 0 из ${S.nDiff}</div>`;
   diffFit(W);
 }
 
@@ -211,7 +211,7 @@ function diffEnd(ok) {
   if (!ok) {
     S.sc.diffs.forEach((d, k) => {
       if (S.foundK.has(k)) return;
-      d.cells.forEach(c => { const e = diffCellEl(c); e.style.outline = '3px solid #ef9f27'; e.style.outlineOffset = '-3px'; });
+      d.cells.forEach(c => { const e = diffCellEl(c); e.classList.add('diff-miss'); });
     });
     document.getElementById('diff-cnt').textContent = `Найдено: ${S.found} из ${S.nDiff} · оранжевым показаны пропущенные`;
   }
