@@ -19,7 +19,7 @@
   /* верно — приглушённый зелёный, ошибка — кирпичный,
      выбор — сланцевый, подсказка — песочный/терракота */
   --green: #3f5a3e; --green-bg: #dfe5d3; --green-bd: #7d8b7c;
-  --red: #7a2e16;   --red-bg: #f3d9c6;   --red-bd: #b0502a;   /* ошибка: тёплый оранжево-терракотовый, не розовый */
+  --red: #7c3a0c;   --red-bg: #f6dcbf;   --red-bd: #c2661c;   /* ошибка: оранжевый, не розовый */
   --blue: #14284b;  --blue-bg: #cfd9d9;  --blue-bd: #77898b;
   --amber: #6b4a1c; --amber-bg: #ecdcb8; --amber-bd: #c85f31;
   --teal-bd: #7d8b7c;
@@ -45,7 +45,7 @@
   --btn-bg: #212830; --btn-text: #e9e1cf; --btn-border: #3d444d;
   --stripe: #7e4733; --hover-text: #e3c4a8;
   --green: #b9cdb0; --green-bg: #1a261d; --green-bd: #7d8b7c;
-  --red:   #efb894; --red-bg:   #2c1910; --red-bd:   #b0502a;
+  --red:   #f2bb86; --red-bg:   #2e1c0d; --red-bd:   #c2661c;
   --blue:  #c9d3dc; --blue-bg:  #1c2430; --blue-bd:  #6f7f8a;
   --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
   --teal-bd: #7d8b7c;
