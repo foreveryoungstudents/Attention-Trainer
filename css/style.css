@@ -347,11 +347,13 @@ button { font-family: inherit; }
 .bh-num  { font-size: var(--bh-big); line-height: 1; font-weight: 700; }
 .hp-ol   { fill: var(--hand-ol); stroke: var(--hand-ol); stroke-width: 7; stroke-linejoin: round; }
 .hp-f, .hp-p, .hp-c, .hp-t { stroke: var(--hand-line); stroke-width: 2.4; stroke-linejoin: round; }
+.hp-line { fill: none; stroke: var(--hand-line); stroke-width: 4; stroke-linecap: round; }   /* «лучики» хлопка */
 .hp-f { fill: var(--hand-f); }
 .hp-p { fill: var(--hand-p); }
 .hp-c { fill: var(--hand-c); }
 .hp-t { fill: var(--hand-t); }
-.bh-clap { display: flex; align-items: center; justify-content: center; min-height: calc(var(--bh-hand-w) + 24px); font-size: var(--bh-big); line-height: 1.15; }
+.bh-clap { display: flex; align-items: center; justify-content: center; }
+.bh-clap .bh-pad { width: min(100%, calc(var(--bh-hand-w) * 1.7)); aspect-ratio: auto; }   /* хлопок — две руки, шире */
 .bh-clap-lbl { text-align: center; min-height: 64px; margin-top: var(--bh-gap); font-size: 22px; font-weight: 700; color: var(--text2); }
 .bh-info { text-align: center; min-height: 64px; margin-top: var(--bh-gap); font-size: 16px; color: var(--text2); }
 .bh-say  { font-size: 26px; line-height: 1.1; color: var(--text); }
