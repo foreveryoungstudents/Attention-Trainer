@@ -1,15 +1,14 @@
 /* ══════════════════════════════════════════════════════════════
    text_recall.js — задание «Внимание к тексту»
-   Поток: карточка → чтение фрагмента → «Я готов» → фрагмент скрыт,
-          появляется вопрос → ввод ответа → проверка → результат
-          (фрагмент с подсветкой ответа) + «Вернуться» / «Далее».
+   Поток: чтение фрагмента → «Я готов» → фрагмент скрыт, виден вопрос →
+          ввод ответа → результат: ваш ответ + оценка, правильный ответ,
+          исходный текст с отмеченным местом.
+   Оценка: верно / отчасти (засчитывается как верный) / не верно.
 
-   ПОДКЛЮЧЕНИЕ (3 шага):
-   1. Подключить файл ДО engine.js:  <script src="js/categories/text_recall.js"></script>
-   2. В engine.js, там где по task.type вызывается отрисовка, добавить:
-        text_recall: renderTextRecall
-      (так же, как сейчас anagram → renderAnagram, speech_odd → renderExc)
-   3. Если в меню категории строятся из CATS автоматически — больше ничего.
+   Подключение: <script src="js/categories/text_recall.js"></script>
+   до engine.js. Тип 'text_recall' обрабатывается в engine.js.
+   Оформление — только классы .tr-* в css/style.css (цвета — переменные
+   --res-* и --lvl-* в начале того же файла); стилей в этом файле нет.
 
    КАК ДОБАВЛЯТЬ ФРАГМЕНТЫ — копируйте строку в TR_ITEMS:
    {
@@ -17,7 +16,7 @@
      src:  'А. П. Чехов, «Рассказ»',  // источник
      text: `текст фрагмента`,         // дословно из первоисточника!
      q:    'Вопрос?',
-     a:    'Эталонный ответ',         // показывается после проверки
+     a:    'Эталонный ответ',         // запасной вариант, если ключевые слова не нашлись в тексте
      keys: [['корень1','синоним'], ['корень2']],
            // ВСЕ группы должны совпасть. Внутри группы — любой из вариантов.
            // Это НАЧАЛА слов (без окончаний): 'красн' ловит «красный/красного».
@@ -260,43 +259,49 @@ function trCheck(item, input) {
 }
 
 
-// предложение из текста, в котором находится подсвеченный фрагмент
-// (если не нашли или оно слишком длинное — берём эталонный ответ a)
-function trSentence(item) {
-  const hl = (item.hl || [])[0];
-  if (!hl) return item.a;
-  const parts = item.text.split(/(?<=[.!?…])\s+(?=[«"—–A-ZА-ЯЁ])/);
-  const found = parts.find(p => p.includes(hl));
-  return found && found.length <= 220 ? found.trim() : item.a;
+// слово из текста подходит под группу ключей? (цифры — целиком, остальное — по началу слова)
+function trTokenMatches(token, item) {
+  const t = token.toLowerCase().replace(/ё/g, 'е');
+  return item.keys.some(group => group.some(raw => {
+    const k = raw.toLowerCase().replace(/ё/g, 'е');
+    return /^\d+$/.test(k) ? t === k : t.startsWith(k);
+  }));
+}
+const TR_TOKEN = /[А-Яа-яЁёA-Za-z0-9-]+/g;
+
+// «Правильный ответ»: только нужные слова, как они стоят в тексте
+function trKeyWords(item) {
+  const out = [];
+  const scan = str => (str.match(TR_TOKEN) || []).forEach(w => {
+    if (trTokenMatches(w, item) && !out.includes(w)) out.push(w);
+  });
+  (item.hl || []).forEach(scan);
+  if (!out.length) scan(item.text);
+  return out.length ? out.join(', ') : item.a;
 }
 
+// фрагмент ответа: ключевые слова подчёркнуты
+function trMarkFragment(frag, item) {
+  let html = '', last = 0, m;
+  TR_TOKEN.lastIndex = 0;
+  while ((m = TR_TOKEN.exec(frag))) {
+    html += trEsc(frag.slice(last, m.index));
+    const w = trEsc(m[0]);
+    html += trTokenMatches(m[0], item) ? `<u class="tr-key">${w}</u>` : w;
+    last = m.index + m[0].length;
+  }
+  return html + trEsc(frag.slice(last));
+}
+
+// весь текст: нужное место — цветом, ключевые слова внутри — подчёркнуты
 function trHighlight(item) {
   let html = trEsc(item.text);
   (item.hl || []).forEach(h => {
     const e = trEsc(h);
-    if (html.includes(e)) html = html.replace(e, `<mark class="tr-hl">${e}</mark>`);
+    if (html.includes(e)) html = html.replace(e, `<mark class="tr-hl">${trMarkFragment(h, item)}</mark>`);
   });
   return html;
 }
-
-(function trStyle() {
-  if (document.getElementById('tr-style')) return;
-  const st = document.createElement('style');
-  st.id = 'tr-style';
-  st.textContent = `
-    .tr-text{text-align:left;font-size:17px;line-height:1.75;padding:4px 2px}
-    .tr-src{font-size:13px;color:var(--text3,#888);margin-top:6px;text-align:left}
-    .tr-hl{background:var(--amber-bg);color:var(--amber);box-shadow:inset 0 -2px 0 var(--amber-bd);border-radius:3px;padding:0 2px}
-    .tr-row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:14px}
-    .tr-input{width:100%;box-sizing:border-box;font-size:17px;padding:10px 12px;border-radius:10px;
-      border:1px solid var(--border,#c8c8c0);background:transparent;color:inherit;margin-top:12px}
-    .tr-res{margin-top:12px;padding:10px 12px;border-radius:10px;text-align:left;font-size:15px;line-height:1.5}
-    .tr-res.ok{background:var(--green-bg);color:var(--green);border:1px solid var(--green-bd)}
-    .tr-res.no{background:var(--red-bg);color:var(--red);border:1px solid var(--red-bd)}
-    .tr-res.part{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-bd)}
-  `;
-  document.head.appendChild(st);
-})();
 
 /* ───────── Отрисовка ───────── */
 function renderTextRecall() {
@@ -305,8 +310,8 @@ function renderTextRecall() {
   STATE.scratch = { phase: 'read' };
 
   document.getElementById('task-area').innerHTML = `
-    <div class="task-q" style="font-size:16px">Прочитай фрагмент внимательно<br>
-      <span style="font-size:14px;color:var(--text2)">Потом текст скроется, и нужно будет ответить на вопрос</span></div>
+    <div class="task-q">Прочитай фрагмент внимательно<br>
+      <span class="tr-hint">Потом текст скроется, и нужно будет ответить на вопрос</span></div>
     <div class="task-vis tr-text">${trEsc(it.text)}</div>
     <div class="tr-src">${trEsc(it.src)}</div>
     <div class="tr-row">
@@ -318,7 +323,7 @@ function trReady() {
   const it = STATE.curTask.item;
   STATE.scratch.phase = 'ask';
   document.getElementById('task-area').innerHTML = `
-    <div class="task-q" style="font-size:17px">${trEsc(it.q)}</div>
+    <div class="task-q">${trEsc(it.q)}</div>
     <input id="tr-in" class="tr-input" type="text" autocomplete="off" autocapitalize="off"
            placeholder="Твой ответ…" onkeydown="if(event.key==='Enter')trSubmit()">
     <div class="tr-row">
@@ -342,25 +347,25 @@ function trFinish(userAns) {
   const r = userAns ? trCheck(it, userAns) : { ok: false, hit: 0, total: it.keys.length };
   STATE.scratch.phase = 'done';
   STATE.answered = true;
-  STATE.scTot++; if (r.ok) STATE.scOk++;
 
-  let cls, msg;
-  if (r.ok) { cls = 'ok'; msg = '✓ Верно!'; }
-  else if (r.hit > 0) { cls = 'part'; msg = `Почти: верно ${r.hit} из ${r.total} частей ответа.`; }
-  else { cls = 'no'; msg = userAns ? '✗ Не совпало с текстом.' : 'Ничего страшного — посмотри, где это было.'; }
+  // верно — звезда; частично — тоже засчитываем (одна звезда)
+  const credited = r.ok || r.hit > 0;
+  STATE.scTot++; if (credited) STATE.scOk++;
+
+  let cls, mark;
+  if (r.ok)           { cls = 'ok';   mark = '✓ Верно'; }
+  else if (r.hit > 0) { cls = 'part'; mark = '✓ Отчасти правильно'; }
+  else                { cls = 'no';   mark = '✕ Не верно'; }
 
   document.getElementById('task-area').innerHTML = `
-    <div class="task-q" style="font-size:17px">${trEsc(it.q)}</div>
-    <div class="tr-res ${cls}">
-      <div><b>${msg}</b></div>
-      ${userAns ? `<div style="margin-top:4px">Твой ответ: ${trEsc(userAns)}</div>` : ''}
-      <div style="margin-top:4px">Правильный ответ: <b>${trEsc(trSentence(it))}</b></div>
-    </div>
-    <div class="task-vis tr-text" style="margin-top:12px">${trHighlight(it)}</div>
+    <div class="task-q">${trEsc(it.q)}</div>
+    <div class="tr-verdict">Ваш ответ: <b>${userAns ? trEsc(userAns) : '—'}</b>
+      <span class="tr-st ${cls}">${mark}</span></div>
+    <div class="tr-correct">Правильный ответ: <b>${trEsc(trKeyWords(it))}</b></div>
+    <div class="task-vis tr-text">${trHighlight(it)}</div>
     <div class="tr-src">${trEsc(it.src)}</div>`;
 
   updScore();
-  // вердикт уже показан в карточке выше, поэтому общую плашку #fb не выводим
-  document.getElementById('fb').style.display = 'none';
+  document.getElementById('fb').style.display = 'none';   // общая плашка не нужна
   document.getElementById('nxt-btn').style.display = 'block';   // «Далее»
 }
