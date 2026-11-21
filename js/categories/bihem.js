@@ -11,26 +11,26 @@
        rot    — поворот всей кисти в градусах (180 — «большой вниз»)
        ring — «здороваются»: номер пальца (0 указательный … 3 мизинец), который согнут и касается кончика большого;  pinch / cross — щепотка, скрещённые пальцы
        side — вид сбоку: кисть лежит горизонтально, пальцы смотрят вправо (f — какие пальцы вытянуты, thumb:'out' — большой вверх-вперёд, 'none' — не виден)
-       thumbs — кулак с большим пальцем вверх, вид на тыльную сторону (пальцев не видно); «вниз» — flipY (переворот по вертикали вокруг заданной линии)
+       thumbs — кулак сбоку (вверх / фига / вниз), смотрит к центру как и вид сбоку; down — «вниз» (видны только костяшки), flipY — переворот по вертикали
        fig (вместе с thumbs) — тот же кулак, но вместо поднятого пальца между указательным и средним виден кружок — кончик большого */
   const HAND_POSES = [
-    { id:'fist',     name:'Кулак',                       thumb:'in',   f:[0,0,0,0] },
+    { id:'fist',     name:'Кулак',                       thumb:'in',   f:[0,0,0,0], lift:true },
     { id:'palm',     name:'Ладонь, пальцы вместе',       thumb:'side', f:[1,1,1,1] },
     { id:'spread',   name:'Ладонь, пальцы врозь',        thumb:'out',  f:[1,1,1,1], ang:[14,4,-6,-18] },
     { id:'vulcan',   name:'Вулкан (2+2)',                thumb:'side', f:[1,1,1,1], ang:[6,3,-12,-24] },
     { id:'peace',    name:'Виктори (V)',                 thumb:'in',   f:[1,1,0,0], ang:[10,-8,0,0] },
     { id:'three',    name:'Три пальца',                  thumb:'in',   f:[1,1,1,0] },
     { id:'four',     name:'Четыре пальца',               thumb:'in',   f:[1,1,1,1] },
-    { id:'point',    name:'Указательный вверх',          thumb:'in',   f:[1,0,0,0] },
-    { id:'gun',      name:'Указательный + большой (Г)',  thumb:'horiz', f:[1,0,0,0] },
-    { id:'horns',    name:'Коза',                        thumb:'in',   f:[1,0,0,1], ang:[8,0,0,-12] },
-    { id:'love',     name:'Я тебя люблю',                thumb:'out',  f:[1,0,0,1], ang:[8,0,0,-12] },
-    { id:'call',     name:'Позвони (большой + мизинец)', thumb:'horiz', f:[0,0,0,1] },
+    { id:'point',    name:'Указательный вверх',          thumb:'in',   f:[1,0,0,0], lift:true },
+    { id:'gun',      name:'Указательный + большой (Г)',  thumb:'horiz', f:[1,0,0,0], lift:true },
+    { id:'horns',    name:'Коза',                        thumb:'in',   f:[1,0,0,1], ang:[8,0,0,-12], lift:true },
+    { id:'love',     name:'Я тебя люблю',                thumb:'out',  f:[1,0,0,1], ang:[8,0,0,-12], lift:true },
+    { id:'call',     name:'Позвони (большой + мизинец)', thumb:'horiz', f:[0,0,0,1], lift:true },
     { id:'sidegun',  name:'Пистолет (вид сбоку)',      side:true, thumb:'out', f:[1,1,0,0] },
     { id:'wolf',     name:'Волк (вид сбоку)',          side:true, thumb:'out', f:[0,0,1,1] },
     { id:'thumbup',  name:'Большой вверх',               thumbs:true,  f:[0,0,0,0] },
     { id:'fig',      name:'Фига (кулак сбоку)',          thumbs:true, fig:true, f:[0,0,0,0] },
-    { id:'thumbdn',  name:'Большой вниз',                thumbs:true,  f:[0,0,0,0], flipY:75 },
+    { id:'thumbdn',  name:'Большой вниз',                thumbs:true, down:true, f:[0,0,0,0], flipY:75 },
     { id:'ok',       name:'Большой + указательный',  thumb:'none', f:[0,1,1,1], ring:0, ang:[0,4,-4,-12] },
     { id:'ok_mid',   name:'Большой + средний',       thumb:'none', f:[1,0,1,1], ring:1, ang:[8,0,-6,-14] },
     { id:'ok_ring',  name:'Большой + безымянный',    thumb:'none', f:[1,1,0,1], ring:2, ang:[10,4,0,-12] },
@@ -84,9 +84,10 @@
     // ладонь
     const palm = `<rect x="16" y="78" width="76" height="54" rx="24"/>`;
     // согнутые пальцы (поверх ладони)
+    const lift = P.lift ? 7 : 0;
     [0, 1, 2, 3].forEach(i => {
-      const curled = !P.f[i] && !(i === 0 && P.pinch) && i !== RING;
-      if (curled) front.push([rect(FX[i], 80, 106, FW[i] - 1, ang[i], FX[i], 100), 'c']);
+      const curled = !P.f[i] && !(P.pinch && i <= 1) && i !== RING;
+      if (curled) front.push([rect(FX[i], 80 - lift, 106 - lift, FW[i] - 1, ang[i], FX[i], 100), 'c']);   // lift — пальцы выше, перекрывают верхний контур ладони
     });
     // большой палец, прижатый к ладони (поверх согнутых)
     if (th === 'in') front.push([rect(88, 116 - 52, 116, 17, -75, 88, 116), 't']);
@@ -100,27 +101,36 @@
       front.push([rect(bx, by - L, by, 17, th, bx, by), 't']);
     }
     if (P.pinch) {
-      front.push([rect(80, 92 - 44, 92, 15, -25, 80, 92), 'f']);
-      front.push([rect(88, 114 - 64, 114, 17, -30, 88, 114), 't']);
+      // щепотка: указательный и средний рядом, наклонены друг к другу; к их кончикам примыкает кончик большого
+      back.push([rect(62, 96 - 62, 96, 15, 20, 62, 96), 'f']);   // средний
+      back.push([rect(78, 96 - 58, 96, 15, 14, 78, 96), 'f']);   // указательный
+      front.push([rect(100, 120 - 75, 120, 17, -8, 100, 120), 't']);   // большой
     }
     if (P.cross) {
       // указательный и средний скрещены
-      front.push([rect(FX[0], BY - FL[0], BY + 8, FW[0], -14, FX[0], BY + 4), 'f']);
-      front.push([rect(FX[1], BY - FL[1], BY + 8, FW[1], 14, FX[1], BY + 4), 'f']);
+      front.push([rect(FX[1], BY - FL[1], BY + 8, FW[1], 14, FX[1], BY + 4), 'f']);    // средний — дальше от человека
+      front.push([rect(FX[0], BY - FL[0], BY + 8, FW[0], -14, FX[0], BY + 4), 'f']);   // указательный — ближе (сверху)
     }
 
     let all = [...back, [palm, 'p'], ...front];
     if (P.thumbs) {
-      // кулак сбоку: пальцы лежат горизонтальной стопкой, большой палец растёт сверху из середины кулака
+      // кулак сбоку. Базовый рисунок смотрит ВПРАВО (левая рука), правая рука — зеркало: пальцы всегда смотрят к центру.
+      // Большой палец — со стороны запястья (снаружи); «вверх» и «фига» — стопка согнутых пальцев на стороне центра,
+      // «вниз» — тыльная сторона: видны только костяшки.
+      const Y = [72, 87, 102, 117];
+      const stack = Y.map((y, k) => [`<rect x="62" y="${y}" width="48" height="14" rx="7"${P.fig && k === 0 ? ' transform="rotate(-18 69 79)"' : ''}/>`, 'c']);
+      // «вниз»: тыльная сторона, костяшки — не отдельные фигуры, а соединённые дуги самого контура
+      const arcs = 'a8.25 8.25 0 0 1 0 16.5 '.repeat(4);
+      const fistDown = `<path d="M40 66 H96 ${arcs}H40 A24 24 0 0 1 16 108 V90 A24 24 0 0 1 40 66 Z"/>`;
       all = [
-        ...(P.fig ? [] : [[rect(72, 18, 94, 24, 4, 72, 94), 't']]),
-        [`<rect x="16" y="66" width="88" height="66" rx="24"/>`, 'p'],
-        // «фига»: кончик большого пальца — кружок между указательным и средним (лежит ПОД пальцами, виден в щели)
-        ...(P.fig ? [[`<circle cx="76" cy="81" r="7.5"/>`, 't']] : []),
-        // у «фиги» внутренний край указательного приподнят, у основания пальцы по-прежнему вместе
-        ...(P.fig ? [72, 87, 102, 117].map((y, k) => [`<rect x="26" y="${y}" width="68" height="14" rx="7"${k === 0 ? ' transform="rotate(-14 29 79)"' : ''}/>`, 'c']) : []),
+        ...(P.fig ? [] : [[rect(48, 18, 94, 24, -4, 48, 94), 't']]),
+        [P.down ? fistDown : `<rect x="16" y="66" width="88" height="66" rx="24"/>`, 'p'],
+        // «фига»: кончик большого пальца лежит слоем ближе к ладони, указательный приоткрыт и даёт его увидеть
+        ...(P.fig ? [[`<rect x="68" y="83" width="56" height="14" rx="7"/>`, 't']] : []),
+        ...(P.down ? [] : stack),
       ];
     }
+
     if (P.side) {
       // кисть сбоку: пальцы лежат стопкой (сверху вниз: указательный, средний, безымянный, мизинец), смотрят вправо
       const SY = [54, 74, 93, 111], SH = [20, 20, 18, 16];     // верх и толщина «слотов» пальцев
@@ -137,7 +147,7 @@
         else if (P.f[i]) bk.push([`<rect x="40" y="${SY[i]}" width="${EX[i] - 40}" height="${SH[i]}" rx="${SH[i] / 2}"/>`, 'f']);
         else fr.push([`<rect x="46" y="${SY[i] + 2}" width="${CX[i] - 46}" height="${SH[i] - 2}" rx="${(SH[i] - 2) / 2}"/>`, 'c']);
       });
-      all = [...bk, [`<rect x="4" y="50" width="62" height="76" rx="14"/>`, 'p'], ...fr];
+      all = [...bk, [`<rect x="4" y="50" width="62" height="76" rx="29"/>`, 'p'], ...fr];
     }
     const inner =
       // 1) общий тёмный контур всей кисти (цвета — в css/style.css, классы .hp-*)
@@ -147,9 +157,23 @@
     const rotated = P.rot ? `<g transform="rotate(${P.rot} 60 ${P.rc ?? 85})">${inner}</g>`
       : P.flipY ? `<g transform="translate(0 ${P.flipY * 2}) scale(1 -1)">${inner}</g>` : inner;
     const SIDE_TOWARD_CENTER = true;   // вид сбоку: пальцы смотрят к центру (левая вправо, правая влево); false — наружу
-    const mirror = P.side ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';   // обычные позы: левая — зеркало базового рисунка (большой палец слева)
+    const mirror = (P.side || P.thumbs) ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';   // обычные позы: левая — зеркало базового (большой палец слева)
     const body = mirror ? `<g transform="translate(120 0) scale(-1 1)">${rotated}</g>` : rotated;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="136" height="136" viewBox="${fitBox(poseId + side, body)}" class="bh-hand" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
+  }
+  /* Хлопок: две ладони лицом друг к другу, вид сбоку; пальцы тянутся навстречу и встречаются посередине.
+     Цвета — те же .hp-* (переменные --hand-*), без эмодзи. */
+  function clapSVG() {
+    const SY = [54, 74, 93, 111], SH = [20, 20, 18, 16];     // «слоты» пальцев сверху вниз: указательный … мизинец
+    const TIP = [99, 101, 99, 95];                           // докуда тянется палец (центр рисунка x = 100)
+    const rct = (x, y, w, h, rx) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`;
+    const hand = () => {
+      const fingers = SY.map((y, i) => rct(30, y, TIP[i] - 30, SH[i], SH[i] / 2));
+      const palm = rct(4, 52, 48, 72, 24);
+      return `<g class="hp-ol">${fingers.join('')}${palm}</g><g class="hp-f">${fingers.join('')}</g><g class="hp-p">${palm}</g>`;
+    };
+    const burst = '<path class="hp-line" d="M100 34 V20 M84 38 L74 27 M116 38 L126 27"/>';
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="200" height="136" viewBox="0 8 200 128" class="bh-hand" role="img" aria-label="Хлопок">${hand()}<g transform="translate(200 0) scale(-1 1)">${hand()}</g>${burst}</svg>`;
   }
   const SIGNS = HAND_POSES.map(p => p.id);
   const COLORS = [
@@ -459,7 +483,7 @@
   function stepHTML(st, lvlId, preview) {
     if (st.type === 'clap') {
       // хлопок — обе руки сразу, поэтому только один символ
-      return '<div class="bh-clap">👏</div><div class="bh-clap-lbl">ХЛОПОК!</div>';
+      return `<div class="bh-clap"><div class="bh-pad">${clapSVG()}</div></div><div class="bh-clap-lbl">ХЛОПОК!</div>`;
     }
     const lab = (t, cls) => `<div class="bh-lab ${cls}">${t}</div>`;
     const left = `<div class="bh-col">${lab('ЛЕВАЯ', 'l')}<div class="bh-pad">${handSVG(st.L, 'L')}</div></div>`;
