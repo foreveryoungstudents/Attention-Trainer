@@ -15,7 +15,7 @@
   --text: #2a2320; --text2: #46585a; --text3: #556462;
   --title: #14284b; --subtitle: #556853;
   --btn-bg: #14284b; --btn-text: #f1ead8; --btn-border: #14284b;
-  --stripe: #a14534; --hover-text: #c85f31;
+  --stripe: #a14534; --hover-text: #7a6339;
   /* верно — приглушённый зелёный, ошибка — кирпичный,
      выбор — сланцевый, подсказка — песочный/терракота */
   --green: #3f5a3e; --green-bg: #dfe5d3; --green-bd: #7d8b7c;
@@ -29,6 +29,7 @@
      На светлом фоне песочный бледный, поэтому «отчасти» и отметка темнее */
   --res-ok: var(--lvl-1); --res-part: #a58437; --res-bad: var(--lvl-3); --res-mark: #8a6a2c;
   --font-read: 'Literata', Georgia, 'Times New Roman', serif;   /* шрифт отрывков для чтения */
+  --tr-line: var(--border2);   /* черта слева у отрывка: светлая тема — цвет рамки кнопок */
   --radius: 12px; --radius-lg: 14px;
   --shadow: 0 7px 24px rgba(84, 60, 40, .12);
 }
@@ -48,6 +49,7 @@
   --blue:  #c9d3dc; --blue-bg:  #1c2430; --blue-bd:  #6f7f8a;
   --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
   --teal-bd: #7d8b7c;
+  --tr-line: var(--lvl-3);
   --res-part: var(--lvl-2); --res-mark: var(--lvl-2);
   --shadow: 0 7px 24px rgba(0, 0, 0, .35);
 }
@@ -297,7 +299,7 @@ button { font-family: inherit; }
 
 /* ─── Внимание к тексту (js/categories/text_recall.js) ─── */
 /* страница книги: светлее «стола», слева терракотовая черта, шрифт с засечками */
-.tr-text    { text-align: left; font-family: var(--font-read); font-size: 18px; line-height: 1.8; border-left: 3px solid var(--lvl-3); }
+.tr-text    { text-align: left; font-family: var(--font-read); font-size: 18px; line-height: 1.8; border-left: 3px solid var(--tr-line); }
 .tr-src     { margin-top: 14px; text-align: right; font-family: 'Manrope', sans-serif; font-size: 13px; line-height: 1.4; color: var(--text3); }
 .tr-title   { font-size: 16px; font-weight: 600; color: var(--text); }
 .tr-hint    { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--text3); }
