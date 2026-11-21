@@ -310,12 +310,12 @@ function renderTextRecall() {
   STATE.scratch = { phase: 'read' };
 
   document.getElementById('task-area').innerHTML = `
-    <div class="task-q">Прочитай фрагмент внимательно<br>
+    <div class="task-q"><span class="tr-title">Прочитай фрагмент внимательно</span>
       <span class="tr-hint">Потом текст скроется, и нужно будет ответить на вопрос</span></div>
-    <div class="task-vis tr-text">${trEsc(it.text)}</div>
-    <div class="tr-src">${trEsc(it.src)}</div>
+    <div class="task-vis tr-text">${trEsc(it.text)}
+      <div class="tr-src">— ${trEsc(it.src)}</div></div>
     <div class="tr-row">
-      <button class="btn-sm" onclick="trReady()">Я готов — показать вопрос</button>
+      <button class="btn-sm btn-main" onclick="trReady()">Я готов — показать вопрос</button>
     </div>`;
 }
 
@@ -327,7 +327,7 @@ function trReady() {
     <input id="tr-in" class="tr-input" type="text" autocomplete="off" autocapitalize="off"
            placeholder="Твой ответ…" onkeydown="if(event.key==='Enter')trSubmit()">
     <div class="tr-row">
-      <button class="btn-sm" onclick="trSubmit()">Проверить</button>
+      <button class="btn-sm btn-main" onclick="trSubmit()">Проверить</button>
       <button class="btn-sm" onclick="trGiveUp()">Не помню</button>
     </div>`;
   const inp = document.getElementById('tr-in');
@@ -362,8 +362,8 @@ function trFinish(userAns) {
     <div class="tr-verdict">Ваш ответ: <b>${userAns ? trEsc(userAns) : '—'}</b>
       <span class="tr-st ${cls}">${mark}</span></div>
     <div class="tr-correct">Правильный ответ: <b>${trEsc(trKeyWords(it))}</b></div>
-    <div class="task-vis tr-text">${trHighlight(it)}</div>
-    <div class="tr-src">${trEsc(it.src)}</div>`;
+    <div class="task-vis tr-text">${trHighlight(it)}
+      <div class="tr-src">— ${trEsc(it.src)}</div></div>`;
 
   updScore();
   document.getElementById('fb').style.display = 'none';   // общая плашка не нужна
