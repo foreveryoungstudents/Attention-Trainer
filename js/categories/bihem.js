@@ -39,6 +39,27 @@
     { id:'cross',    name:'Скрещённые пальцы',           thumb:'in',   f:[1,1,0,0], cross:true },
   ];
 
+  /* Размер рисунка: viewBox подгоняется под границы позы (измеряется в браузере), поэтому
+     кулак, ладонь и вид сбоку занимают в круге/квадрате одинаково. Минимум 120 — чтобы кулак не раздувало. */
+  const fitCache = {};
+  function fitBox(key, body) {
+    if (fitCache[key]) return fitCache[key];
+    let vb = '-8 4 136 136';                       // запасной вариант (без DOM)
+    try {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('style', 'position:absolute;left:-9999px;width:10px;height:10px;visibility:hidden');
+      svg.innerHTML = `<g>${body}</g>`;
+      document.body.appendChild(svg);
+      const b = svg.firstChild.getBBox();
+      document.body.removeChild(svg);
+      if (b.width > 0 && b.height > 0) {
+        const S = Math.max(Math.max(b.width, b.height) + 14, 120);
+        vb = [b.x + b.width / 2 - S / 2, b.y + b.height / 2 - S / 2, S, S].map(v => v.toFixed(1)).join(' ');
+      }
+    } catch (e) {}
+    return (fitCache[key] = vb);
+  }
+
   function handSVG(poseId, side) {
     const P = HAND_POSES.find(p => p.id === poseId) || HAND_POSES[0];
     const FX = [80, 62, 44, 27], FW = [16, 16, 16, 14], FL = [52, 58, 52, 40];
@@ -125,9 +146,10 @@
       all.map(a => `<g class="hp-${a[1]}">${a[0]}</g>`).join('');
     const rotated = P.rot ? `<g transform="rotate(${P.rot} 60 ${P.rc ?? 85})">${inner}</g>`
       : P.flipY ? `<g transform="translate(0 ${P.flipY * 2}) scale(1 -1)">${inner}</g>` : inner;
-    const mirror = side === 'L';   // ← чтобы поменять левую и правую местами, замените 'L' на 'R'
+    const SIDE_TOWARD_CENTER = true;   // вид сбоку: пальцы смотрят к центру (левая вправо, правая влево); false — наружу
+    const mirror = P.side ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';   // обычные позы: левая — зеркало базового рисунка (большой палец слева)
     const body = mirror ? `<g transform="translate(120 0) scale(-1 1)">${rotated}</g>` : rotated;
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="136" height="136" viewBox="-8 4 136 136" class="bh-hand" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="136" height="136" viewBox="${fitBox(poseId + side, body)}" class="bh-hand" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
   }
   const SIGNS = HAND_POSES.map(p => p.id);
   const COLORS = [
@@ -337,7 +359,7 @@
 
   const ALPHABET = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.split('');
   const TOTAL = 32;      // смен позиций за задание
-  const STEP_MS = 2000;  // шаг = 1 с смена + 1 с задержка до следующей смены
+  const STEP_MS = 2000;  // длительность одного шага по умолчанию (30 ударов/мин); меняется ползунком «Темп»
 
   window.__bihem = window.__bihem || {};
 
@@ -456,15 +478,27 @@
     return `<div class="bh-row">${left}${right}</div><div class="bh-info">${info}</div>`;
   }
 
-  // Остановка ритма. keepButton=true — показать кнопку «Старт» снова
+  // Кнопки: во время ритма «Старт» недоступен, «Стоп» доступен
+  function setRunUI(id, running) {
+    const go = document.getElementById(id + '-btn'), stop = document.getElementById(id + '-stop');
+    if (go) go.disabled = running;
+    if (stop) stop.disabled = !running;
+  }
+  // Остановка ритма. resetUI=true — вернуть кнопки в исходное состояние
   function stopRun(cfg, id, resetUI) {
     clearTimeout(cfg.timer); cfg.timer = null;
     clearInterval(cfg.watch); cfg.watch = null;
     cfg.running = false;
-    if (resetUI) {
-      const btn = document.getElementById(id + '-btn');
-      if (btn) { btn.style.display = ''; btn.textContent = 'Старт'; }
-    }
+    if (resetUI) setRunUI(id, false);
+  }
+  // Первая позиция снова на сцене, счётчик и полоса на нуле
+  function resetStage(cfg, id) {
+    const $ = s => document.getElementById(id + s);
+    if (!$('-stage')) return;
+    $('-stage').innerHTML = stepHTML(cfg.steps[0], cfg.lvlId, true);
+    $('-cnt').textContent = '0 / ' + TOTAL;
+    $('-bar').style.width = '0';
+    $('-btn').textContent = 'Старт';
   }
   // окно/задание закрыто или скрыто?
   const isGone = id => {
@@ -491,33 +525,28 @@
       `<div class="task-q">${t.q}</div><div class="task-vis">${t.vis}</div>`;
   };
 
-  // Запуск: вызывается кнопкой «Старт»
+  // Запуск: кнопка «Старт»
   window.bihemRun = function (id) {
     const cfg = window.__bihem[id];
-    if (!cfg) return;
+    if (!cfg || cfg.running) return;
     audioCtx();   // создаём звук прямо в обработчике нажатия (требование браузеров)
     // останавливаем любые другие запущенные ритмы
     Object.keys(window.__bihem).forEach(k => {
       if (k !== id && window.__bihem[k].running) stopRun(window.__bihem[k], k, false);
     });
-    stopRun(cfg, id, false);
     const $ = s => document.getElementById(id + s);
     cfg.running = true;
-    $('-btn').style.display = 'none';
+    setRunUI(id, true);
     $('-bar').style.width = '0';
     let i = 0;
-    const t0 = performance.now() + 1000; // 1 с на подготовку перед первой сменой
+    let due = performance.now() + 1000;   // 1 с на подготовку перед первой сменой
 
     // Сторож: если окно закрыли/скрыли или вкладка ушла в фон — ритм сразу останавливается
     cfg.watch = setInterval(() => {
       if (isGone(id) || document.hidden) {
         const gone = isGone(id);
         stopRun(cfg, id, !gone);
-        if (!gone) {
-          $('-stage').innerHTML = stepHTML(cfg.steps[0], cfg.lvlId, true);
-          $('-cnt').textContent = '0 / ' + TOTAL;
-          $('-bar').style.width = '0';
-        }
+        if (!gone) resetStage(cfg, id);
       }
     }, 150);
 
@@ -538,26 +567,48 @@
       $('-bar').style.width = ((i + 1) / cfg.steps.length * 100) + '%';
       beep();
       i++;
-      // компенсируем дрейф таймера
-      const next = t0 + i * STEP_MS - performance.now();
-      cfg.timer = setTimeout(tick, Math.max(0, next));
+      due += cfg.stepMs;                   // темп можно менять на ходу: следующий шаг уже по новой длительности
+      cfg.timer = setTimeout(tick, Math.max(0, due - performance.now()));
     }
     cfg.timer = setTimeout(tick, 1000);
+  };
+
+  // Кнопка «Стоп»: остановить и вернуться к началу
+  window.bihemStop = function (id) {
+    const cfg = window.__bihem[id];
+    if (!cfg) return;
+    stopRun(cfg, id, true);
+    resetStage(cfg, id);
+  };
+
+  // Ползунок «Темп»: ударов в минуту (один удар = одна смена позиции)
+  window.bihemTempo = function (id, bpm) {
+    const cfg = window.__bihem[id];
+    if (!cfg) return;
+    cfg.stepMs = 60000 / bpm;
+    const v = document.getElementById(id + '-tv');
+    if (v) v.textContent = bpm;
   };
 
   // Общая сборка карточки-ритма: правило, 30 шагов, первая позиция видна сразу
   function rhythmTask(q, steps, lvlId) {
     const id = 'bh' + Date.now().toString(36) + Math.floor(Math.random() * 1000);
-    window.__bihem[id] = { steps, lvlId, timer: null, watch: null, running: false };
+    window.__bihem[id] = { steps, lvlId, timer: null, watch: null, running: false, stepMs: STEP_MS };
     return {
       q,
       vis: `<div id="${id}" class="bh">
         <div id="${id}-stage">${stepHTML(steps[0], lvlId, true)}</div>
         <div class="bh-prog"><div id="${id}-bar"></div></div>
-        <div class="bh-foot">
-          <span id="${id}-cnt" class="bh-cnt">0 / ${TOTAL}</span>
+        <div class="bh-cnt" id="${id}-cnt">0 / ${TOTAL}</div>
+        <div class="bh-ctl">
           <button id="${id}-btn" class="btn-sm btn-main" onclick="bihemRun('${id}')">Старт</button>
+          <button id="${id}-stop" class="btn-sm" onclick="bihemStop('${id}')" disabled>Стоп</button>
         </div>
+        <label class="bh-tempo">
+          <span>Темп</span>
+          <input type="range" min="20" max="80" step="2" value="${Math.round(60000 / STEP_MS)}" oninput="bihemTempo('${id}', +this.value)">
+          <span><b id="${id}-tv">${Math.round(60000 / STEP_MS)}</b> уд/мин</span>
+        </label>
       </div>`,
       type: 'bihem_rhythm', rhythmId: id,   // свой рендерер, без таймера и вариантов ответа
       ans: '', opts: []
