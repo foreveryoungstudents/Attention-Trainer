@@ -31,7 +31,7 @@
   --font-read: 'Literata', Georgia, 'Times New Roman', serif;   /* шрифт отрывков для чтения */
   --tr-line: var(--border2);   /* черта слева у отрывка: светлая тема — цвет рамки кнопок */
   /* рисованные руки (bihem.js): пальцы / ладонь / согнутые / большой, линия между частями, внешний контур */
-  --hand-f: #e6c697; --hand-p: #f6e6c8; --hand-c: #c99a5e; --hand-t: #d9b07a; --hand-line: #8a6a3a; --hand-ol: #6b4f2a;
+  --hand-f: #f0d9b0; --hand-p: #fbf0dc; --hand-c: #dfbc8d; --hand-t: #ebcb9a; --hand-line: #9a7a48; --hand-ol: #745630;
   --radius: 12px; --radius-lg: 14px;
   --shadow: 0 7px 24px rgba(84, 60, 40, .12);
 }
@@ -335,14 +335,14 @@ button { font-family: inherit; }
 .tr-key { text-decoration: underline; text-decoration-color: var(--res-mark); text-decoration-thickness: 2px; text-underline-offset: 4px; }
 
 /* ─── Пальчиковая гимнастика и ритм-карточки (js/categories/bihem.js) ─── */
-.bh { --bh-big: clamp(70px, 20vw, 130px); --bh-hand-w: clamp(90px, 26vw, 170px); --bh-gap: 24px; max-width: 100%; overflow-x: hidden; }
+.bh { --bh-big: clamp(80px, 24vw, 150px); --bh-hand-w: clamp(120px, 34vw, 230px); --bh-gap: 24px; max-width: 100%; overflow-x: hidden; }
 .bh-row  { display: flex; justify-content: center; gap: 2vw; align-items: flex-start; max-width: 100%; overflow: hidden; }
 .bh-col  { flex: 1 1 0; min-width: 0; text-align: center; }
 .bh-lab  { font-size: 12px; font-weight: 700; letter-spacing: .06em; }
 .bh-lab.l { color: var(--blue); }
 .bh-lab.r { color: var(--lvl-3); }
-/* круглая подложка под руку или цифру */
-.bh-pad  { display: flex; align-items: center; justify-content: center; width: min(100%, calc(var(--bh-hand-w) + 28px)); aspect-ratio: 1; margin: 6px auto 0; padding: 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 50%; }
+/* рука или цифра: общий блок одного размера */
+.bh-pad  { display: flex; align-items: center; justify-content: center; width: min(100%, var(--bh-hand-w)); aspect-ratio: 1; margin: 6px auto 0; }
 .bh-hand { width: 100%; height: auto; display: block; }
 .bh-num  { font-size: var(--bh-big); line-height: 1; font-weight: 700; }
 .hp-ol   { fill: var(--hand-ol); stroke: var(--hand-ol); stroke-width: 7; stroke-linejoin: round; }
@@ -351,7 +351,7 @@ button { font-family: inherit; }
 .hp-p { fill: var(--hand-p); }
 .hp-c { fill: var(--hand-c); }
 .hp-t { fill: var(--hand-t); }
-.bh-clap { display: flex; align-items: center; justify-content: center; min-height: calc(var(--bh-hand-w) + 52px); font-size: var(--bh-big); line-height: 1.15; }
+.bh-clap { display: flex; align-items: center; justify-content: center; min-height: calc(var(--bh-hand-w) + 24px); font-size: var(--bh-big); line-height: 1.15; }
 .bh-clap-lbl { text-align: center; min-height: 64px; margin-top: var(--bh-gap); font-size: 22px; font-weight: 700; color: var(--text2); }
 .bh-info { text-align: center; min-height: 64px; margin-top: var(--bh-gap); font-size: 16px; color: var(--text2); }
 .bh-say  { font-size: 26px; line-height: 1.1; color: var(--text); }
