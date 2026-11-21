@@ -3,7 +3,7 @@
 ═══════════════════════════════════════ */
 
 /* Шрифт Manrope (как на главной странице) */
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap');
 
 /* ─── Светлая тема (по умолчанию) ───
    Палитра: бежевый #d8cdb5 · песочный #cab181 · сланцевый #77898b
@@ -28,6 +28,7 @@
   /* «Внимание к тексту»: верно / отчасти / не верно / отметка в тексте.
      На светлом фоне песочный бледный, поэтому «отчасти» и отметка темнее */
   --res-ok: var(--lvl-1); --res-part: #a58437; --res-bad: var(--lvl-3); --res-mark: #8a6a2c;
+  --font-read: 'Literata', Georgia, 'Times New Roman', serif;   /* шрифт отрывков для чтения */
   --radius: 12px; --radius-lg: 14px;
   --shadow: 0 7px 24px rgba(84, 60, 40, .12);
 }
@@ -100,7 +101,7 @@ button { font-family: inherit; }
 .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 1000; align-items: stretch; justify-content: center; padding: 0; }
 .modal-overlay.open { display: flex; }
 
-.modal { background: var(--surface); border-radius: 0; width: 100%; max-width: none; height: 100vh; height: 100dvh; max-height: none; overflow-y: auto; box-shadow: none; display: flex; flex-direction: column; }
+.modal { background: var(--bg); border-radius: 0; width: 100%; max-width: none; height: 100vh; height: 100dvh; max-height: none; overflow-y: auto; box-shadow: none; display: flex; flex-direction: column; }
 .modal-head { padding: .85rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: var(--surface); z-index: 1; }
 .modal-title { font-size: 19px; font-weight: 800; letter-spacing: -.025em; color: var(--title); }
 .modal-badge { font-size: 12px; padding: 4px 12px; border-radius: 8px; font-weight: 500; }
@@ -111,11 +112,13 @@ button { font-family: inherit; }
 
 /* ─── Task UI ─── */
 .sess-lbl { font-size: 12px; color: var(--text3); text-align: center; margin-bottom: .6rem; }
-.tbar-wrap { height: 4px; background: var(--surface2); border-radius: 2px; margin-bottom: 1.5rem; }
-.tbar { height: 100%; border-radius: 2px; transition: width .1s linear; }
+.tbar-wrap { height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 1.5rem; }
+.tbar { height: 100%; border-radius: 2px; transition: width .1s linear, background-color .3s; background: var(--lvl-1); }
+.tbar[data-state="mid"] { background: var(--lvl-2); }
+.tbar[data-state="low"] { background: var(--lvl-3); }
 
 .task-q { font-size: 18px; text-align: center; line-height: 1.6; margin-bottom: 1rem; }
-.task-vis { background: var(--surface2); border-radius: 12px; padding: 1.25rem; text-align: center; line-height: 2; margin-bottom: .5rem; overflow-x: auto; }
+.task-vis { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow); border-radius: var(--radius); padding: 1.25rem; text-align: center; line-height: 2; margin-bottom: .5rem; overflow-x: auto; }
 
 .opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 1.25rem; }
 .opt { background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 13px 14px; font-size: 16px; color: var(--text); cursor: pointer; transition: all .15s; text-align: center; font-family: inherit; }
@@ -154,7 +157,7 @@ button { font-family: inherit; }
 
 /* ─── Memory grid ─── */
 .mgrid { display: grid; gap: 4px; margin: 0 auto; }
-.mcell { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; aspect-ratio: 1; cursor: pointer; transition: all .15s; }
+.mcell { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; aspect-ratio: 1; cursor: pointer; transition: all .15s; }
 .mcell.filled   { background: var(--text); }
 .mcell.selected { background: var(--blue-bd); }
 .mcell.correct  { background: var(--green-bg); border-color: var(--green-bd); }
@@ -195,18 +198,18 @@ button { font-family: inherit; }
 .bihem-wrap { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; margin-top: .5rem; }
 .bihem-col  { flex: 1; min-width: 120px; display: flex; flex-direction: column; gap: 8px; }
 .bihem-hdr  { font-size: 12px; color: var(--text3); text-align: center; margin-bottom: 2px; }
-.bihem-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; font-size: 15px; font-weight: 500; cursor: pointer; transition: all .15s; min-height: 50px; display: flex; align-items: center; justify-content: center; }
-.bihem-cell:hover:not(.ok) { background: var(--surface); }
+.bihem-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; font-size: 15px; font-weight: 500; cursor: pointer; transition: all .15s; min-height: 50px; display: flex; align-items: center; justify-content: center; }
+.bihem-cell:hover:not(.ok) { background: var(--surface2); }
 .bihem-cell.sel { border-color: var(--blue-bd); background: var(--blue-bg); color: var(--blue); }
 .bihem-cell.ok  { background: var(--green-bg); border-color: var(--green-bd); color: var(--green); cursor: default; }
 .bihem-cell.no  { background: var(--red-bg);   border-color: var(--red-bd);   color: var(--red); }
 
 /* ─── Anagram ─── */
 .anagram-letters { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin: 1rem 0; }
-.ana-tile { width: 48px; height: 56px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; cursor: pointer; transition: all .15s; user-select: none; }
-.ana-tile:hover:not(.used) { background: var(--surface); border-color: var(--blue-bd); }
+.ana-tile { width: 48px; height: 56px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; cursor: pointer; transition: all .15s; user-select: none; }
+.ana-tile:hover:not(.used) { background: var(--surface2); border-color: var(--blue-bd); }
 .ana-tile.used { opacity: .25; cursor: default; }
-.anagram-answer { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 10px; background: var(--surface2); border-radius: 12px; border: 1px dashed var(--border2); margin: .75rem 0; }
+.anagram-answer { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 10px; background: transparent; border-radius: 12px; border: 1px dashed var(--border2); margin: .75rem 0; }
 .ana-slot { width: 48px; height: 48px; background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; cursor: pointer; }
 .ana-slot:hover { background: var(--surface2); }
 
@@ -219,13 +222,13 @@ button { font-family: inherit; }
 
 /* ─── Analogy ─── */
 .analogy-parts { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 20px; margin: 1rem 0; }
-.a-kw  { font-weight: 600; background: var(--surface2); padding: 8px 14px; border-radius: 10px; }
+.a-kw  { font-weight: 600; background: var(--surface); border: 1px solid var(--border); padding: 8px 14px; border-radius: 10px; }
 .a-q   { font-weight: 600; background: var(--blue-bg); color: var(--blue); padding: 8px 14px; border-radius: 10px; }
 .a-rel { color: var(--text3); font-size: 16px; }
 
 /* ─── Oral math ─── */
 .math-chain { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 24px; font-weight: 600; margin: 1rem 0; }
-.math-num { background: var(--surface2); border-radius: 8px; padding: 8px 14px; }
+.math-num { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; }
 .math-op  { color: var(--text2); }
 
 /* ─── Summary ─── */
@@ -293,17 +296,24 @@ button { font-family: inherit; }
 .lvl-dot.lvl-4 { background: var(--lvl-4); }
 
 /* ─── Внимание к тексту (js/categories/text_recall.js) ─── */
-.tr-text    { text-align: left; font-size: 17px; line-height: 1.75; }   /* отступы — от .task-vis */
-.tr-src     { font-size: 13px; color: var(--text3); margin-top: 6px; }
-.tr-hint    { font-size: 14px; color: var(--text2); }
-.tr-row     { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-.tr-input   { width: 100%; margin-top: 12px; padding: 10px 12px; font-size: 17px; font-family: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; }
+/* страница книги: светлее «стола», слева терракотовая черта, шрифт с засечками */
+.tr-text    { text-align: left; font-family: var(--font-read); font-size: 18px; line-height: 1.8; border-left: 3px solid var(--lvl-3); }
+.tr-src     { margin-top: 14px; text-align: right; font-family: 'Manrope', sans-serif; font-size: 13px; line-height: 1.4; color: var(--text3); }
+.tr-title   { font-size: 16px; font-weight: 600; color: var(--text); }
+.tr-hint    { display: block; margin-top: 4px; font-size: 14px; font-weight: 500; color: var(--text3); }
+.tr-row     { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+.tr-input   { width: 100%; margin-top: 12px; padding: 12px 14px; font-size: 17px; font-family: inherit; color: var(--text); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; }
 .tr-input:focus { outline: none; border-color: var(--blue-bd); }
+
+/* главная кнопка действия — как «Случайный набор» и «Далее»; «Не помню» остаётся контурной */
+.btn-main, .btn-main:hover { background: var(--btn-bg); color: var(--btn-text); border-color: var(--btn-border); }
+.btn-main   { padding: 10px 22px; font-size: 15px; font-weight: 600; border-radius: 10px; }
+.btn-main:hover { opacity: .9; }
 
 /* результат: «Ваш ответ» + оценка, «Правильный ответ» */
 .tr-verdict, .tr-correct { font-size: 16px; line-height: 1.6; color: var(--text2); }
 .tr-verdict b, .tr-correct b { color: var(--text); font-weight: 700; }
-.tr-correct { margin: 2px 0 14px; }
+.tr-correct { margin: 2px 0 24px; }
 .tr-st      { margin-left: 10px; font-weight: 700; white-space: nowrap; }
 .tr-st.ok   { color: var(--res-ok); }
 .tr-st.part { color: var(--res-part); }
