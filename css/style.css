@@ -27,6 +27,7 @@
   --lvl-1: #7d8b7c; --lvl-2: #cab181; --lvl-3: #c9835f; --lvl-4: #a14534;
   /* «Внимание к тексту»: верно / отчасти / не верно / отметка в тексте.
      На светлом фоне песочный бледный, поэтому «отчасти» и отметка темнее */
+  --ctl-hover: #c85f31;
   --res-ok: var(--lvl-1); --res-part: #a58437; --res-bad: var(--lvl-3); --res-mark: #8a6a2c;
   --radius: 12px; --radius-lg: 14px;
   --shadow: 0 7px 24px rgba(84, 60, 40, .12);
@@ -47,6 +48,7 @@
   --blue:  #c9d3dc; --blue-bg:  #1c2430; --blue-bd:  #6f7f8a;
   --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
   --teal-bd: #7d8b7c;
+  --ctl-hover: #e3c4a8;
   --res-part: var(--lvl-2); --res-mark: var(--lvl-2);
   --shadow: 0 7px 24px rgba(0, 0, 0, .35);
 }
@@ -241,7 +243,8 @@ button { font-family: inherit; }
 /* ─── Hover: меняется только цвет текста ─── */
 @media (hover: hover) {
   .card:hover .card-name { color: var(--hover-text); }
-  .theme-btn:hover, .lvl-btn:not(.active):hover, .btn-sm:hover { color: var(--hover-text); }
+  .theme-btn:hover, .lvl-btn:not(.active):hover { color: var(--hover-text); }
+  .btn-sm:hover { color: var(--ctl-hover); }   /* кнопки управления в задании */
 }
 
 /* ─── Правки по скриншоту ─── */
