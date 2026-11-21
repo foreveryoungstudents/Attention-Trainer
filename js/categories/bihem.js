@@ -39,10 +39,8 @@
     { id:'cross',    name:'Скрещённые пальцы',           thumb:'in',   f:[1,1,0,0], cross:true },
   ];
 
-  function handSVG(poseId, side, css) {
+  function handSVG(poseId, side) {
     const P = HAND_POSES.find(p => p.id === poseId) || HAND_POSES[0];
-    const SK = '#fcc934', SK2 = '#a8651a', OL = '#8a5214';
-    const C = { f: '#fcc934', p: '#ffe39a', c: '#f0a824', t: '#f7bb30' };  // пальцы / ладонь / согнутые пальцы / большой
     const FX = [80, 62, 44, 27], FW = [16, 16, 16, 14], FL = [52, 58, 52, 40];
     const BY = 90;                       // линия основания пальцев
     const ang = P.ang || [0, 0, 0, 0];
@@ -121,14 +119,14 @@
       all = [...bk, [`<rect x="4" y="50" width="62" height="76" rx="14"/>`, 'p'], ...fr];
     }
     const inner =
-      // 1) общий тёмный контур всей кисти
-      `<g fill="${OL}" stroke="${OL}" stroke-width="7" stroke-linejoin="round">${all.map(a => a[0]).join('')}</g>` +
+      // 1) общий тёмный контур всей кисти (цвета — в css/style.css, классы .hp-*)
+      `<g class="hp-ol">${all.map(a => a[0]).join('')}</g>` +
       // 2) заливка: у каждой части свой оттенок и своя тёмная обводка, чтобы пальцы не сливались с ладонью
-      all.map(a => `<g fill="${C[a[1]]}" stroke="${SK2}" stroke-width="2.4" stroke-linejoin="round">${a[0]}</g>`).join('');
+      all.map(a => `<g class="hp-${a[1]}">${a[0]}</g>`).join('');
     const rotated = P.rot ? `<g transform="rotate(${P.rot} 60 ${P.rc ?? 85})">${inner}</g>` : inner;
     const mirror = side === 'R';   // ← чтобы поменять левую и правую местами, замените 'R' на 'L'
     const body = mirror ? `<g transform="translate(120 0) scale(-1 1)">${rotated}</g>` : rotated;
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 4 136 136" style="${css || ''}" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-8 4 136 136" class="bh-hand" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
   }
   const SIGNS = HAND_POSES.map(p => p.id);
   const COLORS = [
@@ -330,12 +328,10 @@
   window.__bihemBuildPoem = buildPoem;
 
   function poemHTML(poem, cur) {
-    const hi = 'background:var(--amber-bg);color:var(--amber);border-radius:6px;padding:1px 6px';
-    const lo = 'color:var(--text2);padding:1px 6px';
-    return '<div style="text-align:center;line-height:1.5">' + poem.stanzas.map(st =>
-      '<div style="margin:0 0 10px">' + st.map(line =>
-        '<div style="font-size:18px">' + line.map(b =>
-          `<span style="${b.i === cur ? hi : lo}">${b.t}</span>`).join(' ') + '</div>').join('') + '</div>').join('') + '</div>';
+    return '<div class="bh-poem">' + poem.stanzas.map(st =>
+      '<div class="bh-stanza">' + st.map(line =>
+        '<div class="bh-line">' + line.map(b =>
+          `<span class="bh-w${b.i === cur ? ' on' : ''}">${b.t}</span>`).join(' ') + '</div>').join('') + '</div>').join('') + '</div>';
   }
 
   const ALPHABET = 'АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ'.split('');
@@ -436,36 +432,27 @@
     } catch (e) {}
   }
 
-  // Размер фигурок: максимально крупно, подстраивается под ширину экрана
-  const BIG = 'clamp(80px, 24vw, 150px)';          // для чисел и хлопка
-  const HAND_W = 'clamp(90px, 26vw, 170px)';       // ширина нарисованной руки
-
   // Содержимое «сцены» для одного шага (используется и для предпросмотра до старта)
   function stepHTML(st, lvlId, preview) {
     if (st.type === 'clap') {
       // хлопок — обе руки сразу, поэтому только один символ
-      return `<div style="text-align:center;font-size:${BIG};line-height:1.15">👏</div>
-              <div style="text-align:center;min-height:64px;margin-top:8px;font-size:22px;font-weight:700;color:var(--text2)">ХЛОПОК!</div>`;
+      return '<div class="bh-clap">👏</div><div class="bh-clap-lbl">ХЛОПОК!</div>';
     }
-    const lab = (t, c) => `<div style="font-size:12px;font-weight:700;letter-spacing:.06em;color:${c}">${t}</div>`;
-    const left = `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ЛЕВАЯ', '#185fa5')}
-      ${handSVG(st.L, 'L', `width:${HAND_W};max-width:100%;height:auto;display:block;margin:0 auto`)}</div>`;
+    const lab = (t, cls) => `<div class="bh-lab ${cls}">${t}</div>`;
+    const left = `<div class="bh-col">${lab('ЛЕВАЯ', 'l')}<div class="bh-pad">${handSVG(st.L, 'L')}</div></div>`;
     const right = lvlId >= 4
-      ? `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ПРАВАЯ', '#d85a30')}
-          <div style="display:flex;align-items:center;justify-content:center;height:${HAND_W};font-size:${BIG};line-height:1;font-weight:700;color:${st.color}">${st.num}</div></div>`
-      : `<div style="flex:1 1 0;min-width:0;text-align:center">${lab('ПРАВАЯ', '#d85a30')}
-          ${handSVG(st.R, 'R', `width:${HAND_W};max-width:100%;height:auto;display:block;margin:0 auto`)}</div>`;
-    const hintStart = '<div style="font-size:14px;color:var(--text3);margin-top:4px">Приготовься и нажми «Старт»</div>';
+      ? `<div class="bh-col">${lab('ПРАВАЯ', 'r')}<div class="bh-pad"><div class="bh-num" style="color:${st.color}">${st.num}</div></div></div>`   // цвет — часть задания
+      : `<div class="bh-col">${lab('ПРАВАЯ', 'r')}<div class="bh-pad">${handSVG(st.R, 'R')}</div></div>`;
+    const hintStart = '<div class="bh-hint">Приготовься и нажми «Старт»</div>';
     let info = '';
     if (lvlId >= 4) info = 'Называй цвет числа';
     else if (st.poem) info = poemHTML(st.poem, preview ? -1 : st.cur) + (preview ? hintStart : '');
-    else if (preview && st.rule) info = `<b style="font-size:20px">${st.rule}</b>` + hintStart;
-    else if (st.say) info = `<b style="font-size:${st.big ? 44 : 26}px;line-height:1.1">${st.say}</b>` +
-      (st.ctx ? `<div style="font-size:14px;color:var(--text3);margin-top:4px">${st.ctx}</div>` : '');
-    else if (st.rule) info = `<b style="font-size:20px">${st.rule}</b>`;
+    else if (preview && st.rule) info = `<b class="bh-rule">${st.rule}</b>` + hintStart;
+    else if (st.say) info = `<b class="bh-say${st.big ? ' big' : ''}">${st.say}</b>` +
+      (st.ctx ? `<div class="bh-hint">${st.ctx}</div>` : '');
+    else if (st.rule) info = `<b class="bh-rule">${st.rule}</b>`;
     else if (preview) info = 'Приготовься и нажми «Старт»';
-    return `<div style="display:flex;justify-content:center;gap:2vw;align-items:flex-start;max-width:100%;overflow:hidden">${left}${right}</div>
-            <div style="text-align:center;min-height:64px;margin-top:8px;font-size:16px;color:var(--text2)">${info}</div>`;
+    return `<div class="bh-row">${left}${right}</div><div class="bh-info">${info}</div>`;
   }
 
   // Остановка ритма. keepButton=true — показать кнопку «Старт» снова
@@ -563,14 +550,12 @@
     window.__bihem[id] = { steps, lvlId, timer: null, watch: null, running: false };
     return {
       q,
-      vis: `<div id="${id}" style="max-width:100%;overflow-x:hidden">
+      vis: `<div id="${id}" class="bh">
         <div id="${id}-stage">${stepHTML(steps[0], lvlId, true)}</div>
-        <div style="height:6px;background:rgba(128,128,128,.2);border-radius:3px;margin:8px 0">
-          <div id="${id}-bar" style="height:100%;width:0;background:#7f77dd;border-radius:3px"></div>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center">
-          <span id="${id}-cnt" style="font-size:13px;color:var(--text3)">0 / ${TOTAL}</span>
-          <button id="${id}-btn" onclick="bihemRun('${id}')" style="padding:8px 22px;font-size:15px;border-radius:10px;border:none;background:#7f77dd;color:#fff;cursor:pointer">Старт</button>
+        <div class="bh-prog"><div id="${id}-bar"></div></div>
+        <div class="bh-foot">
+          <span id="${id}-cnt" class="bh-cnt">0 / ${TOTAL}</span>
+          <button id="${id}-btn" class="btn-sm btn-main" onclick="bihemRun('${id}')">Старт</button>
         </div>
       </div>`,
       type: 'bihem_rhythm', rhythmId: id,   // свой рендерер, без таймера и вариантов ответа
