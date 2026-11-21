@@ -15,7 +15,7 @@
   --text: #2a2320; --text2: #46585a; --text3: #556462;
   --title: #14284b; --subtitle: #556853;
   --btn-bg: #14284b; --btn-text: #f1ead8; --btn-border: #14284b;
-  --stripe: #a14534; --hover-text: #a14534;
+  --stripe: #a14534; --hover-text: #c85f31;
   /* верно — приглушённый зелёный, ошибка — кирпичный,
      выбор — сланцевый, подсказка — песочный/терракота */
   --green: #3f5a3e; --green-bg: #dfe5d3; --green-bd: #7d8b7c;
@@ -27,7 +27,6 @@
   --lvl-1: #7d8b7c; --lvl-2: #cab181; --lvl-3: #c9835f; --lvl-4: #a14534;
   /* «Внимание к тексту»: верно / отчасти / не верно / отметка в тексте.
      На светлом фоне песочный бледный, поэтому «отчасти» и отметка темнее */
-  --ctl-hover: #c85f31;
   --res-ok: var(--lvl-1); --res-part: #a58437; --res-bad: var(--lvl-3); --res-mark: #8a6a2c;
   --radius: 12px; --radius-lg: 14px;
   --shadow: 0 7px 24px rgba(84, 60, 40, .12);
@@ -48,7 +47,6 @@
   --blue:  #c9d3dc; --blue-bg:  #1c2430; --blue-bd:  #6f7f8a;
   --amber: #e3cd9c; --amber-bg: #2a2314; --amber-bd: #cab181;
   --teal-bd: #7d8b7c;
-  --ctl-hover: #e3c4a8;
   --res-part: var(--lvl-2); --res-mark: var(--lvl-2);
   --shadow: 0 7px 24px rgba(0, 0, 0, .35);
 }
@@ -243,8 +241,7 @@ button { font-family: inherit; }
 /* ─── Hover: меняется только цвет текста ─── */
 @media (hover: hover) {
   .card:hover .card-name { color: var(--hover-text); }
-  .theme-btn:hover, .lvl-btn:not(.active):hover { color: var(--hover-text); }
-  .btn-sm:hover { color: var(--ctl-hover); }   /* кнопки управления в задании */
+  .theme-btn:hover, .lvl-btn:not(.active):hover, .btn-sm:hover { color: var(--hover-text); }
 }
 
 /* ─── Правки по скриншоту ─── */
@@ -272,7 +269,7 @@ button { font-family: inherit; }
 .rand-btn:hover, .next-btn:hover { opacity: .9; }
 
 /* ─── Названия карточек: приглушённая терракота в тёмной теме ─── */
-:root[data-theme="dark"] .card-name { color: #c9835f; }
+:root[data-theme="dark"] .card-name { color: var(--lvl-3); }
 
 /* ─── Линейные значки вместо эмодзи ─── */
 :root { --icon-color: #c85f31; }
