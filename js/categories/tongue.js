@@ -1,11 +1,16 @@
 /* ═══════════════════════════════════════
    СКОРОВОРКИ  (раздел «Речь и словесное внимание»)
-   1 ур.: панель звуков → короткая скороговорка: прочитать вслух, записать себя, прослушать запись
-   2 ур.: метроном на 60 секунд со случайной короткой скороговоркой и меткой звука
+   1 ур.: карточки со ВСЕМИ скороговорками → выбранную прочитать вслух, записать себя, прослушать запись
+   2 ур.: карточки со всеми скороговорками → метроном на 60 секунд с выбранной; темп и громкость регулируются, можно запускать снова
    3 ур.: «Снежный ком» (как в категории Snowball): части длинной скороговорки из TG_SNOW появляются по одной и исчезают;
           на контрольных остановках надо нажать ВСЕ части с самого начала по порядку; одна ошибка — конец цепочки
    4 ур.: длинная скороговорка целиком с вертикальной прокруткой: прочитать вслух, записать себя, прослушать
    Озвучки нет — только запись своего голоса и её прослушивание. Проверки речи нет: самооценка (кнопки) либо выполнение шагов.
+
+   ОФОРМЛЕНИЕ
+     Весь внешний вид — в style.css, раздел «Скороговорки» (классы tg-*). В этом файле нет цветов и размеров,
+     только имена классов; кнопки и плашки берутся из общих .btn-sm / .btn-main / .next-btn / .opt.
+     Единственный «живой» размер, который ставит скрипт, — ширина полоски метронома (style.width).
 
    КАК ПОДКЛЮЧИТЬ
      index.html : <script src="js/categories/tongue.js"></script>
@@ -18,7 +23,6 @@
      TG_LONG   — длинная скороговорка, нумерованные фрагменты. НОМЕР = ПОЗИЦИЯ В СПИСКЕ (с 1), поэтому
                  в списке есть «дыра» (null) на месте № 6, а № 88 и № 102 стоят на своих местах.
                  Новый фрагмент — добавлять строго на нужную позицию.
-     TG_SOUNDS — панель уровней 1–2: звук + номера фрагментов из TG_LONG, которые на него тренируют.
      TG_SNOW   — тексты для «снежного кома». «|» делит текст на части-словосочетания (ком растёт ровно по ним);
                  переводы строк и пустые строки на деление не влияют, только на вид текста. */
 (function () {
@@ -421,29 +425,6 @@ null,  // 6 (нет)
 да ещё и самосовершенствуется!`,  // 128
   ];
 
-  const TG_SOUNDS = [
-
-   { sound: 'Д-Р',  nums: [9, 10, 11, 12] },
-   { sound: 'Ч',   nums: [1, 13, 21, 28, 30, 31, 32, 33, 34, 35] },
-   { sound: 'Б',   nums: [7, 36, 37, 38, 39, 40, 41, 42, 43, 44] },
-   { sound: 'С-Ш',   nums: [15, 16, 17, 20, 21, 24, 25, 27, 28, 45, 95, 96, 123, 124, 125, 126, 128 ] },
-   { sound: 'В',   nums: [19, 46, 47, 48, 49] },
-   { sound: 'Г',   nums: [50, 51, 52, 53] },
-   { sound: 'Г-Р',  nums: [54, 55, 56, 57, 60] },
-   { sound: 'З',   nums: [58, 59, 60, 61] },
-   { sound: 'Д',   nums: [62, 63, 64, 65, 66, 67, 68] },
-   { sound: 'Ж',   nums: [18, 69, 70, 71, 72, 73, 74, 75, 76, 77, 127] },
-   { sound: 'З',   nums: [78, 79, 80, 81, 82, 83, 84, 85, 88] },
-   { sound: 'Й',   nums: [86 ] },
-   { sound: 'Л',   nums: [14, 22, 87, 89, 90, 91, 100, 101, 102, 103, 104, 105] },
-   { sound: 'К',   nums: [4, 5, 8, 10, 22, 23, 97, 98, 99] },
-   { sound: 'ПР-ПЛ',   nums: [3, 14, 18, 106, 107, 108, 109] },
-   { sound: 'Р',   nums: [4, 7, 110, 111, 112, 113, 114, 115, 116 ] },
-   { sound: 'Р-Л',   nums: [2, 19, 23, 102, 117, 118, 119, 120, 121] },
-   { sound: 'ТР',   nums: [2, 7, 17, 20] },
-  ];
-
-
   /* Длинные скороговорки для уровня 3 («снежный ком»).
      «|» делит скороговорку на части-словосочетания — ком растёт ровно по этим долям.
      Строки и пустые строки (строфы) — только для вида, на части они не влияют. */
@@ -605,23 +586,22 @@ null,  // 6 (нет)
   const SNOW_GAP = 250;     // пауза между частями, мс
   const METRO_SEC = 60;     // длительность метронома (уровень 2)
   const BPM_MIN = 40, BPM_MAX = 200, BPM_DEF = 100;   // диапазон темпа, ударов в минуту
+  let tgBpm = BPM_DEF, tgVol = 60;                    // текущие темп и громкость (%) — помнятся между запусками метронома
 
   /* ── вспомогательное ── */
   const $ = id => document.getElementById(id);
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const frag = n => (typeof TG_LONG[n - 1] === 'string' ? TG_LONG[n - 1] : '');            // фрагмент №n (пустой, если в списке дыра)
-  /* текст для показа строфами: убирает «|», чистит пробелы в каждой строке, сохраняет переводы строк и пустые строки */
+  /* текст для показа строфами: убирает «|», чистит пробелы в каждой строке, сохраняет переводы строк и пустые строки
+     (на экране строфы держит CSS: white-space: pre-line в классах .tg-text, .tg-full, .tg-card, .tg-frag) */
   const lines = t => String(t == null ? '' : t)
     .replace(/\|/g, ' ')
     .split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n')
     .replace(/\n{3,}/g, '\n\n').trim();
-  const STANZA = 'white-space:pre-line;';                                                 // стиль для блоков со строфами
   const beatsOf = t => (t = String(t == null ? '' : t)).includes('|')
     ? t.split('|').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean)
     : t.split(/\s+/).filter(w => w && !/^[—–-]+$/.test(w));
   const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
-  const BTN = 'padding:8px 14px;font-size:14px;border-radius:10px;border:1px solid rgba(128,128,128,.4);background:rgba(128,128,128,.12);color:inherit;cursor:pointer';
-  const BTN_MAIN = 'padding:9px 20px;font-size:15px;border-radius:10px;border:none;background:#7f77dd;color:#fff;cursor:pointer';
   const rnd = n => Math.floor(Math.random() * n);
 
   /* ── жизненный цикл карточки: всё останавливается, если окно закрыли или карточку сменили ── */
@@ -653,18 +633,18 @@ null,  // 6 (нет)
 
   /* ── блок «надиктуй — прослушай себя» (уровни 1 и 4) ── */
   function studioHTML() {
-    const mk = (n, t) => `<div style="font-weight:600;margin:12px 0 6px"><span id="tg-m${n}" style="display:inline-block;width:20px;color:#2e9e4f"></span>${n}. ${t}</div>`;
+    const mk = (n, t) => `<div class="tg-step"><span id="tg-m${n}" class="tg-mark"></span>${n}. ${t}</div>`;
     return `<div id="tg-studio">
       ${mk(1, 'Прочитай вслух и запиши себя')}
-      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-        <button id="tg-rec" style="${BTN}">● Запись</button>
-        <button id="tg-recstop" style="${BTN}" disabled>■ Стоп</button>
-        <span id="tg-rt" style="font-size:13px;color:var(--text3)"></span>
+      <div class="tg-row">
+        <button id="tg-rec" class="btn-sm">● Запись</button>
+        <button id="tg-recstop" class="btn-sm" disabled>■ Стоп</button>
+        <span id="tg-rt" class="tg-muted"></span>
       </div>
-      <div id="tg-recmsg" style="font-size:13px;color:var(--text3);min-height:18px;margin-top:4px"></div>
+      <div id="tg-recmsg" class="tg-muted tg-recmsg"></div>
       ${mk(2, 'Прослушай себя')}
-      <audio id="tg-aud" controls style="width:100%;display:none"></audio>
-      <div style="margin-top:14px;text-align:center"><button id="tg-done" style="${BTN_MAIN};opacity:.45" disabled>Готово</button></div>
+      <audio id="tg-aud" class="tg-aud" controls></audio>
+      <div class="tg-center"><button id="tg-done" class="btn-sm btn-main" disabled>Готово</button></div>
     </div>`;
   }
   // o: { onDone() }
@@ -674,8 +654,7 @@ null,  // 6 (нет)
     const upd = () => {
       $('tg-m1').textContent = S.recorded ? '✓' : '';
       $('tg-m2').textContent = S.played ? '✓' : '';
-      const ok = S.played || S.micBad;                  // нет микрофона — можно завершить без записи
-      const b = $('tg-done'); b.disabled = !ok; b.style.opacity = ok ? '1' : '.45';
+      $('tg-done').disabled = !(S.played || S.micBad);  // нет микрофона — можно завершить без записи
     };
     const rmsg = t => { $('tg-recmsg').textContent = t || ''; };
 
@@ -698,7 +677,7 @@ null,  // 6 (нет)
           recBtn.disabled = false; recStopBtn.disabled = true; $('tg-rt').textContent = '';
           if (S.recUrl) { try { URL.revokeObjectURL(S.recUrl); } catch (e) {} }
           S.recUrl = URL.createObjectURL(new Blob(chunks, { type: rec.mimeType || 'audio/webm' }));
-          const a = $('tg-aud'); a.src = S.recUrl; a.style.display = 'block';
+          const a = $('tg-aud'); a.src = S.recUrl; a.classList.add('show');
           S.recorded = true; S.played = false;
           rmsg('Записано. Нажми ▶ ниже и послушай себя.');
           upd();
@@ -723,86 +702,115 @@ null,  // 6 (нет)
   // при смене вида внутри карточки — остановить запись
   function resetMedia(S) { recAbort(S); }
 
-  /* ── УРОВЕНЬ 1: панель звуков ── */
-  function renderL1(S) {
+  /* ── выбор скороговорки: карточки со всеми скороговорками (уровни 1 и 2) ── */
+  function renderPicker(S, title, onPick) {
     resetMedia(S);
+    const cards = [];
+    for (let n = 1; n <= TG_LONG.length; n++) {
+      const t = lines(frag(n));
+      if (!t) continue;                                    // пропускаем «дыру» (null)
+      cards.push(`<button class="btn-sm tg-card" data-n="${n}"><span class="tg-num">№${n}</span>${esc(t)}</button>`);
+    }
     S.root.innerHTML = `
-      <div class="task-q" style="font-size:16px">Выбери звуки для тренировки</div>
-      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px">
-        ${TG_SOUNDS.map((x, i) => `<button class="tg-chip" data-i="${i}" style="${BTN};font-size:18px;padding:12px 18px">${esc(x.sound)}</button>`).join('')}
-      </div>`;
-    S.root.querySelectorAll('.tg-chip').forEach(b => { b.onclick = () => openShort(S, TG_SOUNDS[+b.dataset.i]); });
+      <div class="task-q tg-title">${title}</div>
+      <div id="tg-grid" class="tg-grid">${cards.join('')}</div>`;
+    const grid = $('tg-grid');
+    grid.scrollTop = S.gridScroll || 0;                    // вернуться к тому же месту списка
+    grid.querySelectorAll('.tg-card').forEach(b => {
+      b.onclick = () => { S.gridScroll = grid.scrollTop; onPick(+b.dataset.n); };
+    });
   }
-  function pickShort(snd, last) {
-    const pool = snd.nums.length > 1 ? snd.nums.filter(n => n !== last) : snd.nums;
-    return pool[rnd(pool.length)];
-  }
-  function openShort(S, snd) {
-    const n = pickShort(snd, S.lastN); S.lastN = n;
+
+  /* ── УРОВЕНЬ 1: выбранную скороговорку читаем вслух, записываем себя, слушаем ── */
+  function renderL1(S) { renderPicker(S, 'Выбери скороговорку для тренировки', n => openFrag(S, n)); }
+  function openFrag(S, n) {
     S.root.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <span style="padding:4px 12px;border-radius:999px;background:#eeedfe;color:#3c3489;font-weight:700">${esc(snd.sound)}</span>
-        <button id="tg-back" style="${BTN}">← Другие звуки</button>
+      <div class="tg-head">
+        <span class="tg-muted">№${n}</span>
+        <button id="tg-back" class="btn-sm">← Все скороговорки</button>
       </div>
-      <div style="font-size:20px;line-height:1.5;margin:14px 0;${STANZA}">${esc(lines(frag(n)))}</div>
+      <div class="tg-text">${esc(lines(frag(n)))}</div>
       ${studioHTML()}`;
     $('tg-back').onclick = () => renderL1(S);
     bindStudio(S, { onDone: () => finish(S) });
   }
 
-  /* ── УРОВЕНЬ 2: метроном ── */
-  function renderL2(S) {
-    const snd = TG_SOUNDS[rnd(TG_SOUNDS.length)];
-    const n = pickShort(snd, -1);
+  /* ── УРОВЕНЬ 2: метроном на выбранной скороговорке (темп и громкость регулируются, можно запускать снова) ── */
+  function renderL2(S) { renderPicker(S, 'Выбери скороговорку для метронома', n => openMetro(S, n)); }
+  function openMetro(S, n) {
     S.root.innerHTML = `
-      <div style="text-align:center"><span style="padding:4px 12px;border-radius:999px;background:#eeedfe;color:#3c3489;font-weight:700">${esc(snd.sound)}</span></div>
-      <div style="font-size:22px;line-height:1.5;margin:14px 0;text-align:center;${STANZA}">${esc(lines(frag(n)))}</div>
-      <div style="text-align:center;margin:8px 0">
-        <div id="tg-dot" style="display:inline-block;width:44px;height:44px;border-radius:50%;background:#7f77dd;opacity:.25;transition:opacity .08s"></div>
+      <div class="tg-head">
+        <span class="tg-muted">№${n}</span>
+        <button id="tg-back" class="btn-sm">← Все скороговорки</button>
       </div>
-      <div id="tg-time" style="text-align:center;font-size:28px;font-weight:700">${fmt(METRO_SEC)}</div>
-      <div style="height:6px;background:rgba(128,128,128,.2);border-radius:3px;margin:8px 0"><div id="tg-bar" style="height:100%;width:0;background:#7f77dd;border-radius:3px"></div></div>
-      <div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;margin-top:10px">
-        <span style="font-size:13px;color:var(--text3)">темп</span>
-        <button id="tg-bpm-minus" style="${BTN};padding:6px 12px;font-size:18px;line-height:1">−</button>
-        <input id="tg-bpm" type="range" min="${BPM_MIN}" max="${BPM_MAX}" step="5" value="${BPM_DEF}" style="width:150px">
-        <button id="tg-bpm-plus" style="${BTN};padding:6px 12px;font-size:18px;line-height:1">+</button>
-        <span id="tg-bpmv" style="font-size:13px;min-width:70px">${BPM_DEF} уд/мин</span>
+      <div class="tg-text c">${esc(lines(frag(n)))}</div>
+      <div class="tg-dotwrap"><div id="tg-dot" class="tg-dot"></div></div>
+      <div id="tg-time" class="tg-time">${fmt(METRO_SEC)}</div>
+      <div class="tg-barwrap"><div id="tg-bar" class="tg-bar"></div></div>
+      <div class="tg-ctl">
+        <span class="tg-muted tg-lbl">темп</span>
+        <button id="tg-bpm-minus" class="btn-sm tg-step-btn">−</button>
+        <input id="tg-bpm" class="tg-range" type="range" min="${BPM_MIN}" max="${BPM_MAX}" step="5" value="${tgBpm}">
+        <button id="tg-bpm-plus" class="btn-sm tg-step-btn">+</button>
+        <span id="tg-bpmv" class="tg-muted tg-val">${tgBpm} уд/мин</span>
       </div>
-      <div style="text-align:center;margin-top:14px"><button id="tg-start" style="${BTN_MAIN}">Старт</button></div>`;
-    // темп можно менять и до старта, и во время работы метронома (следующий щелчок уже в новом темпе)
-    S.bpm = BPM_DEF;
+      <div class="tg-ctl">
+        <span class="tg-muted tg-lbl">громкость</span>
+        <button id="tg-vol-minus" class="btn-sm tg-step-btn">−</button>
+        <input id="tg-vol" class="tg-range" type="range" min="0" max="100" step="5" value="${tgVol}">
+        <button id="tg-vol-plus" class="btn-sm tg-step-btn">+</button>
+        <span id="tg-volv" class="tg-muted tg-val">${tgVol}%</span>
+      </div>
+      <div class="tg-center"><button id="tg-start" class="btn-sm btn-main">Старт</button></div>`;
+    // темп и громкость можно менять и до старта, и во время работы (следующий щелчок уже с новыми значениями);
+    // значения запоминаются между запусками
+    S.bpm = tgBpm;
     const setBpm = v => {
-      S.bpm = Math.min(BPM_MAX, Math.max(BPM_MIN, Math.round(v / 5) * 5));
+      S.bpm = tgBpm = Math.min(BPM_MAX, Math.max(BPM_MIN, Math.round(v / 5) * 5));
       $('tg-bpm').value = S.bpm; $('tg-bpmv').textContent = S.bpm + ' уд/мин';
     };
+    const setVol = v => {
+      tgVol = Math.min(100, Math.max(0, Math.round(v / 5) * 5));
+      $('tg-vol').value = tgVol; $('tg-volv').textContent = tgVol + '%';
+    };
+    $('tg-back').onclick = () => { stopMetro(S, false); renderL2(S); };
     $('tg-bpm').oninput = () => setBpm(+$('tg-bpm').value);
     $('tg-bpm-minus').onclick = () => setBpm(S.bpm - 5);
     $('tg-bpm-plus').onclick = () => setBpm(S.bpm + 5);
+    $('tg-vol').oninput = () => setVol(+$('tg-vol').value);
+    $('tg-vol').onchange = () => { if (!S.running) click(true); };   // пробный щелчок, чтобы оценить громкость
+    $('tg-vol-minus').onclick = () => { setVol(tgVol - 5); if (!S.running) click(true); };
+    $('tg-vol-plus').onclick = () => { setVol(tgVol + 5); if (!S.running) click(true); };
     $('tg-start').onclick = () => {
-      if (S.running) return stopMetro(S, true);
-      startMetro(S);
+      if (S.running) return stopMetro(S, true);            // «Стоп» — сброс
+      startMetro(S);                                       // «Старт» и «Ещё раз»
     };
   }
   function click(accent) {
+    if (tgVol <= 0) return;
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       window.__tgAC = window.__tgAC || new AC();
       const ac = window.__tgAC, o = ac.createOscillator(), g = ac.createGain();
-      o.frequency.value = accent ? 880 : 640; g.gain.value = 0.18;
+      if (ac.state === 'suspended' && ac.resume) ac.resume();
+      o.frequency.value = accent ? 880 : 640; g.gain.value = 0.3 * tgVol / 100;
       o.connect(g); g.connect(ac.destination);
       o.start(); o.stop(ac.currentTime + 0.04);
     } catch (e) {}
   }
+  function resetMetroView(S) {
+    if (S.dead) return;
+    $('tg-time').textContent = fmt(METRO_SEC); $('tg-bar').style.width = '0'; $('tg-dot').classList.remove('on');
+    const m = $('tg-done-msg'); if (m) m.remove();
+  }
   function stopMetro(S, reset) {
     clearTimeout(S.metro); clearInterval(S.clock); S.running = false;
-    if (reset && !S.dead) {
-      $('tg-start').textContent = 'Старт'; $('tg-bar').style.width = '0'; $('tg-time').textContent = fmt(METRO_SEC);
-      $('tg-dot').style.opacity = '.25';
-    }
+    if (reset && !S.dead) { $('tg-start').textContent = 'Старт'; resetMetroView(S); }
   }
   function startMetro(S) {
     try { const AC = window.AudioContext || window.webkitAudioContext; window.__tgAC = window.__tgAC || new AC(); if (window.__tgAC.resume) window.__tgAC.resume(); } catch (e) {}
+    stopMetro(S, false);                                       // на случай повторного запуска: старые таймеры снять
+    resetMetroView(S);
     S.running = true;
     $('tg-start').textContent = 'Стоп';
     const t0 = performance.now() + 800;                        // 0,8 с на подготовку
@@ -812,13 +820,13 @@ null,  // 6 (нет)
       if (!S.running || !alive(S)) return;
       if (performance.now() >= tEnd) {
         stopMetro(S, false);
-        $('tg-time').textContent = '0:00'; $('tg-bar').style.width = '100%'; $('tg-dot').style.opacity = '.25';
-        $('tg-start').style.display = 'none';
-        $('tg-time').insertAdjacentHTML('afterend', '<div style="text-align:center;font-weight:700;margin-top:6px">Готово ✔</div>');
-        return finish(S);
+        $('tg-time').textContent = '0:00'; $('tg-bar').style.width = '100%'; $('tg-dot').classList.remove('on');
+        $('tg-start').textContent = 'Ещё раз';                 // кнопка остаётся: метроном можно запустить снова
+        if (!$('tg-done-msg')) $('tg-time').insertAdjacentHTML('afterend', '<div id="tg-done-msg" class="tg-donemsg">Готово ✔</div>');
+        return finish(S);                                      // засчитывается один раз (повторы не копят очки)
       }
       click(k % 4 === 0);
-      const dot = $('tg-dot'); dot.style.opacity = '1'; setTimeout(() => { if (!S.dead && $('tg-dot')) $('tg-dot').style.opacity = '.25'; }, 90);
+      $('tg-dot').classList.add('on'); setTimeout(() => { if (!S.dead && $('tg-dot')) $('tg-dot').classList.remove('on'); }, 90);
       k++;
       next += 60000 / S.bpm;                                   // интервал до следующего щелчка — по текущему темпу
       S.metro = setTimeout(tick, Math.max(0, next - performance.now()));
@@ -827,7 +835,7 @@ null,  // 6 (нет)
       if (!alive(S)) return;
       const el = Math.max(0, (performance.now() - t0) / 1000);
       $('tg-time').textContent = fmt(Math.max(0, METRO_SEC - el));
-      $('tg-bar').style.width = Math.min(100, el / METRO_SEC * 100) + '%';
+      $('tg-bar').style.width = Math.min(100, el / METRO_SEC * 100) + '%';   // единственный «живой» размер — остаётся в style
     }, 200);
     S.metro = setTimeout(tick, 800);
   }
@@ -841,13 +849,8 @@ null,  // 6 (нет)
     if (cps[cps.length - 1] !== n) cps.push(n);
     return cps;
   };
-  const SN_BOX = 'text-align:center;background:var(--surface2);border-radius:12px;padding:2rem 1rem;min-height:110px;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700;word-break:break-word;';
-  const snChip = (txt, kind, extra) => {
-    const c = kind === 'ok' ? ['green-bg', 'green-bd', 'green'] : kind === 'no' ? ['red-bg', 'red-bd', 'red'] : ['surface2', 'border2', 'text2'];
-    return `<span style="background:var(--${c[0]});border:1px solid var(--${c[1]});color:var(--${c[2]});border-radius:8px;padding:4px 10px;font-size:15px;font-weight:600;${extra || ''}">${txt}</span>`;
-  };
-  const SN_WRAP = 'display:flex;flex-wrap:wrap;gap:6px;justify-content:center;line-height:1.2';
-  const SN_MUTED = 'font-size:14px;color:var(--text3);text-align:center;margin:6px 0;line-height:1.6';
+  /* плашка части: kind = ok | no | idle | tap (+ cur — обведённая нужная часть) — цвета в CSS (.tg-chip) */
+  const snChip = (txt, kind) => `<span class="tg-chip ${kind}">${txt}</span>`;
 
   function snowPick(S) {
     let i = rnd(TG_SNOW.length);
@@ -868,16 +871,16 @@ null,  // 6 (нет)
       S.spare = mix([...new Set(TG_SNOW.flatMap((t, i) => i === idx ? [] : beatsOf(t)))].filter(w => !inChain.has(w)));
       S.root.innerHTML = `
         <div class="task-q">Снежный ком: скороговорка</div>
-        <div class="task-vis" style="line-height:1.7">
+        <div class="task-vis tg-intro">
           Части скороговорки будут появляться <b>по одной</b> и исчезать. Запоминай их по порядку.<br>
           Проверки после частей: <b>${S.cps.join(', ')}</b>.<br>
           На проверке нажимай <b>все части с самого начала</b> в том же порядке.<br>
           <b>Одна ошибка — и цепочка заканчивается.</b><br>
           Скороговорка ${idx + 1} из ${total}, всего частей: <b>${S.N}</b>.
         </div>
-        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <div class="tg-actions">
           <button class="next-btn" id="tg-begin">Начать</button>
-          <button id="tg-other" style="${BTN}">Другая скороговорка</button>
+          <button id="tg-other" class="btn-sm">Другая скороговорка</button>
         </div>`;
       $('tg-begin').onclick = run;
       $('tg-other').onclick = intro;
@@ -888,8 +891,8 @@ null,  // 6 (нет)
       const target = S.cps[S.cpi];
       const screen = (t, i) => `
         <div class="task-q">Запоминай</div>
-        <div style="${SN_BOX}">${esc(t)}</div>
-        <div style="font-size:14px;color:var(--text3);text-align:center;margin-top:10px">часть ${i + 1} из ${S.N} · проверка после части №${target}</div>`;
+        <div class="tg-sn-box">${esc(t)}</div>
+        <div class="tg-cap top">часть ${i + 1} из ${S.N} · проверка после части №${target}</div>`;
       const step = () => {
         if (!snowAlive(S)) return;
         if (S.shown >= target) return ask(target);
@@ -913,14 +916,14 @@ null,  // 6 (нет)
       const pool = mix([...S.words.slice(0, k), ...mix(S.spare).slice(0, nDis)]);
       S.root.innerHTML = `
         <div class="task-q">Повтори скороговорку: нажимай части в том порядке, как они появлялись</div>
-        <div style="font-size:14px;color:var(--text3);text-align:center;margin-bottom:8px">Частей: <b id="sb-cnt">0</b> из ${k} · одна ошибка заканчивает цепочку</div>
-        <div id="sb-pool" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:1rem 0"></div>
-        <div style="font-size:13px;color:var(--text3);text-align:center">Уже нажато:</div>
-        <div class="task-vis" id="sb-strip" style="min-height:56px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;line-height:1.2"></div>`;
+        <div class="tg-cap">Частей: <b id="sb-cnt">0</b> из ${k} · одна ошибка заканчивает цепочку</div>
+        <div id="sb-pool" class="tg-pool"></div>
+        <div class="tg-cap sm">Уже нажато:</div>
+        <div id="sb-strip" class="task-vis tg-strip"></div>`;
       const poolEl = $('sb-pool');
       pool.forEach(w => {
         const b = document.createElement('button');
-        b.className = 'opt'; b.style.padding = '8px 14px'; b.textContent = w;
+        b.className = 'opt tg-opt'; b.textContent = w;
         b.onclick = () => tap(k, b, w);
         poolEl.appendChild(b);
       });
@@ -929,8 +932,8 @@ null,  // 6 (нет)
     const refresh = () => {
       const strip = $('sb-strip'); if (!strip) return;
       strip.innerHTML = S.taps.length
-        ? S.taps.map((w, i) => `<span style="background:var(--blue-bg);border:1px solid var(--blue-bd);color:var(--blue);border-radius:8px;padding:4px 10px;font-size:15px;font-weight:600">${i + 1}. ${esc(w)}</span>`).join('')
-        : '<span style="color:var(--text3);font-size:14px">пока пусто</span>';
+        ? S.taps.map((w, i) => snChip(`${i + 1}. ${esc(w)}`, 'tap')).join('')
+        : '<span class="tg-empty">пока пусто</span>';
       $('sb-cnt').textContent = S.taps.length;
     };
     const tap = (k, b, w) => {
@@ -938,7 +941,7 @@ null,  // 6 (нет)
       const pos = S.taps.length;
       S.taps.push(w);
       if (w !== S.words[pos]) return end(false, k, pos);      // первая ошибка — конец
-      b.disabled = true; b.style.opacity = '.35';
+      b.disabled = true;
       refresh();
       if (S.taps.length === k) passed(k);
     };
@@ -961,19 +964,19 @@ null,  // 6 (нет)
       if (ok) {
         S.root.innerHTML = `
           <div class="task-q">Вся скороговорка — ${S.N} частей без ошибок!</div>
-          <div class="task-vis" style="font-size:18px;line-height:1.6;text-align:center;${STANZA}">${esc(lines(TG_SNOW[S.idx]))}</div>`;
+          <div class="task-vis tg-full lg">${esc(lines(TG_SNOW[S.idx]))}</div>`;
       } else {
-        const right = S.words.slice(0, k).map((w, i) => snChip(`${i + 1}. ${esc(w)}`, i <= bad ? 'ok' : 'idle', i === bad ? 'box-shadow:0 0 0 2px var(--green)' : '')).join('');
+        const right = S.words.slice(0, k).map((w, i) => snChip(`${i + 1}. ${esc(w)}`, i === bad ? 'ok cur' : i < bad ? 'ok' : 'idle')).join('');
         S.root.innerHTML = `
           <div class="task-q">Удержано частей подряд: ${held} из ${S.N}</div>
-          <div style="${SN_MUTED}">На месте №${bad + 1} ты нажала:</div>
-          <div style="${SN_WRAP}">${snChip(esc(S.taps[bad]), 'no')}</div>
-          <div style="${SN_MUTED}">а нужно было:</div>
-          <div style="${SN_WRAP}">${snChip(esc(S.words[bad]), 'ok')}</div>
-          <div style="${SN_MUTED}">Правильная цепочка (${k} частей), нужная часть обведена:</div>
-          <div class="task-vis" style="${SN_WRAP}">${right}</div>
-          <div style="${SN_MUTED}">Вся скороговорка целиком:</div>
-          <div class="task-vis" style="font-size:16px;line-height:1.6;text-align:center;${STANZA}">${esc(lines(TG_SNOW[S.idx]))}</div>`;
+          <div class="tg-cap">На месте №${bad + 1} ты нажала:</div>
+          <div class="tg-wrap">${snChip(esc(S.taps[bad]), 'no')}</div>
+          <div class="tg-cap">а нужно было:</div>
+          <div class="tg-wrap">${snChip(esc(S.words[bad]), 'ok')}</div>
+          <div class="tg-cap">Правильная цепочка (${k} частей), нужная часть обведена:</div>
+          <div class="task-vis tg-wrap">${right}</div>
+          <div class="tg-cap">Вся скороговорка целиком:</div>
+          <div class="task-vis tg-full">${esc(lines(TG_SNOW[S.idx]))}</div>`;
       }
       if (STATE.curTask) STATE.curTask.explain = ok
         ? `Скороговорка из ${S.N} частей воспроизведена без ошибок.`
@@ -989,9 +992,9 @@ null,  // 6 (нет)
   /* ── УРОВЕНЬ 4: вся скороговорка с прокруткой, по строфам ── */
   function renderL4(S) {
     S.root.innerHTML = `
-      <div style="font-size:13px;color:var(--text3);margin-bottom:6px">Вся скороговорка — прокручивай вниз</div>
-      <div id="tg-scroll" style="max-height:34vh;overflow-y:auto;border:1px solid rgba(128,128,128,.3);border-radius:10px;padding:10px 12px;font-size:17px;line-height:1.6">
-        ${TG_LONG.map((t, i) => !frag(i + 1) ? '' : `<div id="tg-f${i}" style="margin:0 0 14px;padding:2px 6px;border-radius:6px;${STANZA}"><span style="color:var(--text3);font-size:12px;margin-right:6px">${i + 1}</span>${esc(lines(frag(i + 1)))}</div>`).join('')}
+      <div class="tg-muted mb">Вся скороговорка — прокручивай вниз</div>
+      <div id="tg-scroll" class="tg-scroll">
+        ${TG_LONG.map((t, i) => !frag(i + 1) ? '' : `<div id="tg-f${i}" class="tg-frag"><span class="tg-fnum">${i + 1}</span>${esc(lines(frag(i + 1)))}</div>`).join('')}
       </div>
       ${studioHTML()}`;
     bindStudio(S, { onDone: () => finish(S) });
@@ -1001,21 +1004,21 @@ null,  // 6 (нет)
   window.renderTongue = function () {
     const lvl = Math.min(Math.max(getLvl().id, 1), 4);
     const S = STATE.scratch = { level: lvl };
-    $('task-area').innerHTML = '<div id="tg-root"></div>';
+    $('task-area').innerHTML = '<div id="tg-root" class="tg-root"></div>';
     S.root = $('tg-root');
     watch(S);
     try {
       ({ 1: renderL1, 2: renderL2, 3: renderL3, 4: renderL4 })[lvl](S);
     } catch (e) {
       console.error('Скороговорки:', e);
-      S.root.innerHTML = `<div class="task-q" style="color:#e24b4a">Не удалось открыть карточку</div>
-        <div class="task-vis" style="font-size:13px;word-break:break-word">${esc((e && e.message) || e)}</div>`;
+      S.root.innerHTML = `<div class="task-q tg-err">Не удалось открыть карточку</div>
+        <div class="task-vis tg-errmsg">${esc((e && e.message) || e)}</div>`;
     }
   };
 
   CATS.tongue = {
-    name: 'Скороговорки', desc: 'Звуки, метроном, снежный ком, длинный текст',
-    icon: '🗣️', bg: '#e1f5ee', fg: '#085041',
+    name: 'Скороговорки', desc: 'Карточки, метроном, снежный ком, длинный текст',
+    icon: '🗣️', bg: '#e1f5ee', fg: '#085041',      // bg/fg перекрываются style.css (.card-icon !important) — оставлены для совместимости с реестром
     gen() { return { type: 'tongue' }; }
   };
 })();
