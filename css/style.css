@@ -395,7 +395,7 @@ button { font-family: inherit; }
 .tg-center   { margin-top: 14px; text-align: center; }
 .tg-row      { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .tg-head     { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.tg-text     { font-family: var(--font-read); font-size: 20px; line-height: 1.5; margin: 14px 0; text-align: left; white-space: pre-line; }   /* выбранная скороговорка — как стихотворение, по левому краю */
+.tg-text     { font-family: var(--font-read); font-size: 20px; line-height: 1.5; width: fit-content; max-width: 100%; margin: 14px auto; text-align: left; white-space: pre-line; }   /* стих: строки по левому краю, сам блок — по центру */
 
 /* карточки выбора скороговорки (уровни 1–2) */
 .tg-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; max-height: 55vh; overflow-y: auto; padding: 2px; }
@@ -444,10 +444,11 @@ button { font-family: inherit; }
 .tg-chip.cur  { box-shadow: 0 0 0 2px var(--green); }
 .tg-full      { font-family: var(--font-read); font-size: 16px; line-height: 1.6; text-align: left; white-space: pre-line; }
 .tg-full.lg   { font-size: 18px; }
+.tg-poem      { width: fit-content; max-width: 100%; margin: 0 auto; text-align: left; white-space: pre-line; }   /* стих внутри плашки: по левому краю, блок по центру */
 
 /* вся скороговорка (уровень 4) */
 .tg-scroll { max-height: 34vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; font-size: 17px; line-height: 1.6; }
-.tg-frag   { font-family: var(--font-read); margin: 0 0 14px; padding: 2px 6px; border-radius: 6px; white-space: pre-line; }
+.tg-frag   { font-family: var(--font-read); width: fit-content; max-width: 100%; margin: 0 auto 14px; padding: 2px 6px; border-radius: 6px; white-space: pre-line; }
 .tg-fnum   { font-family: 'Manrope', sans-serif; color: var(--text3); font-size: 12px; margin-right: 6px; }
 
 /* ошибка открытия карточки */
