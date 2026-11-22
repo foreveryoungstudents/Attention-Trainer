@@ -592,11 +592,13 @@ null,  // 6 (нет)
   const $ = id => document.getElementById(id);
   const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   const frag = n => (typeof TG_LONG[n - 1] === 'string' ? TG_LONG[n - 1] : '');            // фрагмент №n (пустой, если в списке дыра)
-  /* текст для показа строфами: убирает «|», чистит пробелы в каждой строке, сохраняет переводы строк и пустые строки
-     (на экране строфы держит CSS: white-space: pre-line в классах .tg-text, .tg-full, .tg-card, .tg-frag) */
+  /* текст для показа как стихотворение: убирает «|», чистит пробелы в каждой строке, сохраняет переводы строк
+     и пустые строки, делает каждую строку с большой буквы (перед первой буквой могут стоять «—», кавычки и т. п.).
+     Выравнивание влево и строфы держит CSS (.tg-text, .tg-full, .tg-card, .tg-frag: text-align: left, white-space: pre-line) */
+  const capLine = l => l.replace(/^([^\p{L}\p{N}]*)(\p{L})/u, (m, pre, c) => pre + c.toUpperCase());
   const lines = t => String(t == null ? '' : t)
     .replace(/\|/g, ' ')
-    .split('\n').map(l => l.replace(/[ \t]+/g, ' ').trim()).join('\n')
+    .split('\n').map(l => capLine(l.replace(/[ \t]+/g, ' ').trim())).join('\n')
     .replace(/\n{3,}/g, '\n\n').trim();
   const beatsOf = t => (t = String(t == null ? '' : t)).includes('|')
     ? t.split('|').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean)
@@ -743,7 +745,7 @@ null,  // 6 (нет)
         <span class="tg-muted">№${n}</span>
         <button id="tg-back" class="btn-sm">← Все скороговорки</button>
       </div>
-      <div class="tg-text c">${esc(lines(frag(n)))}</div>
+      <div class="tg-text">${esc(lines(frag(n)))}</div>
       <div class="tg-dotwrap"><div id="tg-dot" class="tg-dot"></div></div>
       <div id="tg-time" class="tg-time">${fmt(METRO_SEC)}</div>
       <div class="tg-barwrap"><div id="tg-bar" class="tg-bar"></div></div>
@@ -964,7 +966,7 @@ null,  // 6 (нет)
       if (ok) {
         S.root.innerHTML = `
           <div class="task-q">Вся скороговорка — ${S.N} частей без ошибок!</div>
-          <div class="task-vis tg-full lg">${esc(lines(TG_SNOW[S.idx]))}</div>`;
+          <div class="task-vis tg-full lg"><div class="tg-poem">${esc(lines(TG_SNOW[S.idx]))}</div></div>`;
       } else {
         const right = S.words.slice(0, k).map((w, i) => snChip(`${i + 1}. ${esc(w)}`, i === bad ? 'ok cur' : i < bad ? 'ok' : 'idle')).join('');
         S.root.innerHTML = `
@@ -976,7 +978,7 @@ null,  // 6 (нет)
           <div class="tg-cap">Правильная цепочка (${k} частей), нужная часть обведена:</div>
           <div class="task-vis tg-wrap">${right}</div>
           <div class="tg-cap">Вся скороговорка целиком:</div>
-          <div class="task-vis tg-full">${esc(lines(TG_SNOW[S.idx]))}</div>`;
+          <div class="task-vis tg-full"><div class="tg-poem">${esc(lines(TG_SNOW[S.idx]))}</div></div>`;
       }
       if (STATE.curTask) STATE.curTask.explain = ok
         ? `Скороговорка из ${S.N} частей воспроизведена без ошибок.`
