@@ -3,6 +3,7 @@
   /* ── РИСОВАННЫЕ РУКИ (SVG) ──
      Руки нарисованы так, как человек видит свои собственные руки перед собой.
      Базовый рисунок (большой палец справа) — ПРАВАЯ рука, ЛЕВАЯ — его точное зеркальное отражение (большой палец слева). Чтобы поменять местами — см. строку «const mirror».
+     Свет на пальцах всегда приходит слева (у зеркальной левой руки градиент разворачивается), у видов сбоку и «кулака сбоку» — сверху.
      Каждое положение — строка таблицы HAND_POSES; правьте её без знания SVG:
        name   — название (показывается в превью/подсказках)
        thumb  — большой палец: 'out' (в сторону под углом), 'horiz' (строго горизонтально), 'side' (почти прижат), 'up' (вверх, как 👍), 'in' (прижат к ладони), 'none'
@@ -12,7 +13,10 @@
        ring — «здороваются»: номер пальца (0 указательный … 3 мизинец), который согнут и касается кончика большого;  pinch / cross — щепотка, скрещённые пальцы
        side — вид сбоку: кисть лежит горизонтально, пальцы смотрят вправо (f — какие пальцы вытянуты, thumb:'out' — большой вверх-вперёд, 'none' — не виден)
        thumbs — кулак сбоку (вверх / фига / вниз), смотрит к центру как и вид сбоку; down — «вниз» (видны только костяшки), flipY — переворот по вертикали
-       fig (вместе с thumbs) — тот же кулак, но вместо поднятого пальца между указательным и средним виден кружок — кончик большого */
+       fig (вместе с thumbs) — тот же кулак, но вместо поднятого пальца между указательным и средним виден кружок — кончик большого
+     Параметры handBody (opts): shade — затемнение ладони, gradient / merge — заливка ладони,
+       back — рука повёрнута тыльной стороной (без складок ладони и линий сгибов пальцев),
+       noWrist — без запястья (нужен хлопку, где две кисти наложены друг на друга) */
   const HAND_POSES = [
     { id:'fist',     name:'Кулак',                       thumb:'in',   f:[0,0,0,0], lift:true },
     { id:'palm',     name:'Ладонь, пальцы вместе',       thumb:'side', f:[1,1,1,1] },
@@ -39,8 +43,8 @@
     { id:'cross',    name:'Скрещённые пальцы',           thumb:'in',   f:[1,1,0,0], cross:true, lift:true, curlBig:true, thumbX:96, gradC:[.5, .36] },
   ];
 
-  /* Размер рисунка: viewBox подгоняется под границы позы (измеряется в браузере), поэтому
-     кулак, ладонь и вид сбоку занимают в круге/квадрате одинаково. Минимум 120 — чтобы кулак не раздувало. */
+  /* Размер рисунка: viewBox подгоняется под границы позы (измеряется в браузере) — нужен только хлопку.
+     Минимум 120 — чтобы рисунок не раздувало. */
   const fitCache = {};
   let gradCount = 0;   // счётчик id градиентов
   function fitBox(key, body) {
@@ -65,76 +69,93 @@
      от позы к позе меняются только пальцы, поэтому рука не «дышит». Значение посчитано по всем позам (L и R). */
   const HAND_VB = '-42 20 193 156';   // x симметрично относительно центра ладони (54), по высоте — от кончиков пальцев до «большого вниз»
 
-  // handBody — только рисунок руки (без <svg>). opts.plain — прежний вид без доработок (нужен хлопку);
-  // opts.shade — овальное затемнение, opts.gradient / opts.merge — переопределяют заливку ладони
+  const THUMB_W = 19;                 // ширина большого пальца у основания — одна на все позы
+  const SIDE_TOWARD_CENTER = true;    // вид сбоку: пальцы смотрят к центру (левая вправо, правая влево); false — наружу
+
+  // handBody — только рисунок руки (без <svg>).
+  // opts.shade — овальное затемнение, opts.gradient / opts.merge — переопределяют заливку ладони,
+  // opts.back — тыльная сторона, opts.noWrist — без запястья
   function handBody(poseId, side, opts = {}) {
     const P = HAND_POSES.find(p => p.id === poseId) || HAND_POSES[0];
-    const plain = !!opts.plain;
+    const isBack = !!opts.back;
     const n = ++gradCount, gid = 'hq' + n, wid = 'hw' + n;   // свои id градиентов на каждый рисунок
     const shade = opts.shade ?? P.shade;
     // Градиентная заливка ладони: темнее в центре, поперёк ладони — видно, что это ладонь, а не тыльная сторона.
     const grad = opts.gradient ?? (P.gradient ?? !P.down);
     const gc = P.gradC || (P.thumbs ? [.33, .5] : [.5, .5]);   // gradC — свой центр градиента (выше, если середину закрывает большой палец)
     const gradStyle = grad ? ` style="fill:url(#${gid})"` : '';
-    const FX = [80, 62, 44, 27], FW = [16, 16, 16, 14], FL = plain ? [52, 58, 52, 40] : [52, 58, 50, 38];
+    const FX = [80, 62, 44, 27], FW = [16, 16, 16, 14], FL = [52, 58, 50, 38];
     const BY = 90;                       // линия основания пальцев
     const ang = P.ang || [0, 0, 0, 0];
-    const TIP = plain ? 1 : .86;         // сужение кончика пальца
+    const TIP = .86;                     // сужение кончика пальца
+    const tcr = [];                      // складки больших пальцев (тип 'j'), собираются при рисовании
     const rect = (cx, y1, y2, w, a, ox, oy) =>
       `<rect x="${cx - w / 2}" y="${y1}" width="${w}" height="${y2 - y1}" rx="${w / 2}"` +
       (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>';
-    // палец с сужением к кончику; round — скруглённое основание (если оно видно, как у большого пальца)
-    const fing = (cx, y1, y2, w, a, ox, oy, k = TIP, round = false) => {
+    // палец с сужением к кончику
+    const fing = (cx, y1, y2, w, a, ox, oy, k = TIP) => {
       const tw = w * k, r = tw / 2, R = w / 2;
-      const d = round
-        ? `M${cx - R} ${y2 - R}L${cx - r} ${y1 + r}A${r} ${r} 0 0 1 ${cx + r} ${y1 + r}L${cx + R} ${y2 - R}A${R} ${R} 0 0 1 ${cx - R} ${y2 - R}Z`
-        : `M${cx - R} ${y2}L${cx - r} ${y1 + r}A${r} ${r} 0 0 1 ${cx + r} ${y1 + r}L${cx + R} ${y2}Z`;
+      const d = `M${cx - R} ${y2}L${cx - r} ${y1 + r}A${r} ${r} 0 0 1 ${cx + r} ${y1 + r}L${cx + R} ${y2}Z`;
       return `<path d="${d}"` + (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>';
     };
-    // линии сгибов на пальце (две короткие черты) — тип 'j'
-    const joints = (cx, y1, y2, w, a, ox, oy) => plain ? [] : [.42, .74].map(t =>
+    // Большой палец: основание шире кончика, кончик слегка изогнут, закруглённое основание (видно у кольца и «щепотки»).
+    // Рисуется «вверх» от основания (bx, by), длина len, затем поворачивается на a вокруг основания.
+    // Складка сустава — на середине длины (длинная фаланга), чтобы не читалась как ноготь.
+    const thumb = (bx, by, len, a, bend = 8) => {
+      const R = THUMB_W / 2, r = R * .8;
+      const jy = by - len * .52;
+      const tx = bx + Math.sin(bend * Math.PI / 180) * len * .6;
+      const ty = by - len + r;
+      const d = `M${bx - R} ${by}` +
+        `C${bx - R * .95} ${by - len * .35} ${tx - r * 1.1} ${jy + len * .1} ${tx - r} ${ty}` +
+        `A${r} ${r} 0 0 1 ${tx + r} ${ty}` +
+        `C${tx + r * 1.15} ${jy + len * .05} ${bx + R} ${by - len * .35} ${bx + R} ${by}` +
+        `A${R} ${R} 0 0 1 ${bx - R} ${by}Z`;
+      const tr = a ? ` transform="rotate(${a} ${bx} ${by})"` : '';
+      const cx = bx + (tx - bx) * .5, cy = by - len * .5, hw = R * .62;
+      tcr.push(`<path d="M${cx - hw} ${cy}q${hw} 2.5 ${hw * 2} 0"${tr}/>`);
+      return `<path d="${d}"${tr}/>`;
+    };
+    // линии сгибов на пальце (две короткие черты) — тип 'j'; на тыльной стороне не рисуются
+    const joints = (cx, y1, y2, w, a, ox, oy) => isBack ? [] : [.42, .74].map(t =>
       [`<path d="M${cx - w * .27} ${y1 + (y2 - y1) * t}h${w * .54}"` + (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>', 'j']);
 
-    const RING = P.ring ?? (P.ok ? 0 : -1);   // какой палец в кольце с большим (-1 — никакой)
+    const RING = P.ring ?? -1;         // какой палец в кольце с большим (-1 — никакой)
     const back = [], front = [];       // back — за ладонью, front — поверх неё; элементы вида [svg, тип]
     // большой палец (за ладонью)
     const th = P.thumb;
-    if (th === 'horiz') back.push([fing(88, 108 - 36, 108, 18, 90, 88, 108, .9, true), 't']);   // строго горизонтально
-    if (th === 'out')  back.push([fing(88, 112 - 46, 112, 18, 50, 88, 112, .9, true), 't']);
-    if (th === 'side') back.push([fing(88, 112 - 44, 112, 18, P.thumbAng ?? 20, 88, 112, .9, true), 't']);
-    if (th === 'up')   back.push([fing(84, 100 - 62, 100, 19, 4, 84, 100, .9, true), 't']);
+    if (th === 'horiz') back.push([thumb(88, 108, 36, 90), 't']);   // строго горизонтально
+    if (th === 'out')   back.push([thumb(88, 112, 46, 50), 't']);
+    if (th === 'side')  back.push([thumb(88, 112, 44, P.thumbAng ?? 20), 't']);
     // выпрямленные пальцы (за ладонью)
     const fingerShape = i => fing(FX[i], BY - FL[i], BY + 8, FW[i], ang[i], FX[i], BY + 4);
     const up = [0, 1, 2, 3].filter(i => P.f[i] && !P.cross && !P.pinch);
     up.forEach(i => { back.push([fingerShape(i), 'f']); back.push(...joints(FX[i], BY - FL[i], 78, FW[i], ang[i], FX[i], BY + 4)); });
-    // ладонь: с бугром у основания большого пальца (plain — прямоугольник)
-    const palm = plain
-      ? `<rect x="16" y="78" width="76" height="54" rx="24"${gradStyle}/>`
-      : `<path d="M40 78H68A24 24 0 0 1 92 102C100 110 100 124 86 132H40A24 24 0 0 1 16 108V102A24 24 0 0 1 40 78Z"${gradStyle}/>`;
+    // ладонь: с бугром у основания большого пальца
+    const palm = `<path d="M40 78H68A24 24 0 0 1 92 102C100 110 100 124 86 132H40A24 24 0 0 1 16 108V102A24 24 0 0 1 40 78Z"${gradStyle}/>`;
     // согнутые пальцы (поверх ладони) выше верхней линии ладони — закрывают её
-    const lift = plain ? (P.lift ? 7 : 0) : 7;
+    const lift = 7;
     [0, 1, 2, 3].forEach(i => {
       const curled = !P.f[i] && !(P.pinch && i <= 1) && i !== RING;
       const cb = P.curlBig ? 4 : 0;   // curlBig — согнутые пальцы чуть крупнее
       if (curled) front.push([rect(FX[i], 80 - lift - cb, 106 - lift, FW[i] - 1 + cb / 2, ang[i], FX[i], 100), 'c']);
     });
-    // большой палец, прижатый к ладони (поверх согнутых): основание на внешнем крае ладони, у основания шире
-    if (th === 'in') front.push([fing(P.thumbX || 92, 116 - (P.thumbLen || 52), 116, plain ? 17 : 19, -75, P.thumbX || 92, 116, plain ? 1 : .8, true), 't']);
+    // большой палец, прижатый к ладони (поверх согнутых): основание на внешнем крае ладони
+    if (th === 'in') front.push([thumb(P.thumbX || 92, 116, P.thumbLen || 52, -75), 't']);
     // особые положения
     if (RING >= 0) {
       // выбранный палец согнут вниз, большой палец идёт по ладони и касается его кончика (другие пальцы не перекрывает)
       const cx = FX[RING] + (RING === 0 ? 3 : 0), ty = 111;
       const bx = RING === 0 ? 113 : 92, by = RING === 0 ? 130 : 124;   // у указательного большой палец выходит сбоку от ладони
-      front.push([rect(FX[RING], plain ? 76 : 71, 108, FW[RING] - 1, 0, FX[RING], 100), 'c']);
+      front.push([rect(FX[RING], 71, 108, FW[RING] - 1, 0, FX[RING], 100), 'c']);
       const dx = cx - bx, dy = ty - by, L = Math.hypot(dx, dy), thA = Math.atan2(dx, -dy) * 180 / Math.PI;
-      front.push([fing(bx, by - L, by, 17, thA, bx, by, .85, true), 't']);
+      front.push([thumb(bx, by, L, thA), 't']);
     }
     if (P.pinch) {
       // щепотка: указательный и средний рядом, кончики у центральной линии ладони; кончик большого наползает на оба
-      // кончики скруглены (k = 1), большой лежит поверх обоих и заканчивается чуть ниже — видны все три кончика
       back.push([fing(54, 96 - 58, 96, 15, -4, 54, 96, 1), 'f']);   // средний
       back.push([fing(70, 96 - 56, 96, 15, -6, 70, 96, 1), 'f']);   // указательный
-      front.push([fing(88, 112 - 69, 112, 19, -24, 88, 112, .9, true), 't']);   // большой: основание на крае ладони
+      front.push([thumb(88, 112, 69, -24), 't']);                   // большой: основание на крае ладони
     }
     if (P.cross) {
       // указательный и средний скрещены
@@ -144,10 +165,17 @@
 
     // запястье (тип рисуется последним): точка крепления [x, y, поворот] — где ладонь переходит в предплечье
     let wa = [54, 128, 0];
-    // овальное затемнение ладони (только у хлопка) — тип 's'
+    // овальное затемнение ладони (у нижней руки хлопка) — тип 's'
     const shadeOf = (cx, cy, rx, ry) => shade ? [[`<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}"/>`, 's'], [`<ellipse cx="${cx}" cy="${cy}" rx="${rx * .55}" ry="${ry * .65}"/>`, 's']] : [];
     const palmType = opts.merge ? 'm' : P.flatPalm ? 'q' : 'p';   // q — ладонь без обводки, m — слита с цветом пальцев
-    let all = [...back, [palm, palmType], ...shadeOf(54, 106, 26, 16), ...front];
+    // доработки: перепонки между пальцами (тип 'm', цвет пальцев, без обводки)
+    // и две складки на ладони (тип 'j', не на тыльной стороне); у видов сбоку и «кулака сбоку» свои — ниже
+    const extra = [];
+    if (!P.thumbs && !P.side) {
+      if (up.length >= 2) extra.push([`<rect x="${FX[3] - 4}" y="${BY - 2}" width="${FX[0] - FX[3] + 8}" height="16" rx="6"/>`, 'm']);
+      if (!isBack) extra.push(['<path d="M28 112Q48 120 72 108"/>', 'j'], ['<path d="M32 124Q44 121 58 127"/>', 'j']);
+    }
+    let all = [...back, [palm, palmType], ...shadeOf(54, 106, 26, 16), ...extra, ...front];
     if (P.thumbs) {
       // кулак сбоку. Базовый рисунок смотрит ВПРАВО (левая рука), правая рука — зеркало: пальцы всегда смотрят к центру.
       // Большой палец — со стороны запястья (снаружи); «вверх» и «фига» — стопка согнутых пальцев на стороне центра,
@@ -160,8 +188,8 @@
       // «вверх»/«фига»: рука почти в кулаке — ладонь меньше, её внешний край у основания большого пальца
       const fistClosed = `<rect x="34" y="68" width="66" height="62" rx="24"${gradStyle}/>`;
       all = [
-        // большой палец: «вниз» — кончик наклонён в сторону центра (+12°), ближе к внешнему краю
-        ...(P.fig ? [] : [[fing(P.down ? 40 : 48, 34, 94, 17, P.down ? 12 : 10, P.down ? 40 : 48, 94, .85, true), 't']]),
+        // большой палец: «вниз» — кончик наклонён в сторону центра (+12°), ближе к внешнему краю (складка здесь не рисуется — её закрывал бы кулак)
+        ...(P.fig ? [] : [[thumb(P.down ? 40 : 48, 94, 60, P.down ? 12 : 10), 't']]),
         [P.down ? fistDown : fistClosed, 'p'],
         // «вниз»: намёки на пальцы продолжаются бороздками от впадин между костяшками
         ...(P.down ? [82.5, 99, 115.5].map(y => [`<path d="M96 ${y} q-12 3 -26 0"/>`, 'l']) : []),
@@ -180,40 +208,65 @@
       const bk = [], fr = [];
       if (P.thumb === 'out') bk.push([`<rect x="26" y="40" width="54" height="19" rx="9.5" transform="rotate(-18 28 49)"/>`, 't']);
       [0, 1, 2, 3].forEach(i => {
-        if (i === RING) {
-          // палец и большой соединены — сбоку это кольцо в «слоте» этого пальца
-          const cx = 76, cy = SY[i] + SH[i] / 2, R1 = 17, R2 = 6.5;
-          fr.push([`<path fill-rule="evenodd" d="M${cx} ${cy - R1}a${R1} ${R1} 0 1 0 0.01 0zM${cx} ${cy - R2}a${R2} ${R2} 0 1 1 -0.01 0z"/>`, 'f']);
-        }
-        else if (P.f[i]) bk.push([`<rect x="40" y="${SY[i]}" width="${EX[i] - 40}" height="${SH[i]}" rx="${SH[i] / 2}"/>`, 'f']);
+        if (P.f[i]) bk.push([`<rect x="40" y="${SY[i]}" width="${EX[i] - 40}" height="${SH[i]}" rx="${SH[i] / 2}"/>`, 'f']);
         else fr.push([`<rect x="46" y="${SY[i] + 2}" width="${CX[i] - 46}" height="${SH[i] - 2}" rx="${(SH[i] - 2) / 2}"/>`, 'c']);
       });
-      all = [...bk, [`<rect x="4" y="50" width="62" height="76" rx="29"${gradStyle}/>`, 'p'], ...fr];
-      wa = [4, 88, 90];
+      // ладонь — та же, что в остальных позах (с бугром у основания большого пальца), повёрнута пальцами вправо;
+      // бугор большого пальца сверху. Складки — те же две дуги, повёрнутые вместе с ладонью.
+      const SPT = 'translate(35 88) scale(1 -1) rotate(90) translate(-54 -105)';
+      const creases = `<g transform="${SPT}"><path d="M28 112Q48 120 72 108"/><path d="M32 124Q44 121 58 127"/></g>`;
+      all = [...bk, [`<g transform="${SPT}">${palm}</g>`, 'p'], [creases, 'j'], ...fr];
+      wa = [8, 88, 90];
     }
+    // складки больших пальцев (в позах «кулак сбоку» их нет)
+    if (!P.thumbs) all = all.concat(tcr.map(c => [c, 'j']));
+
+    // зеркало: обычные позы — левая рука зеркало базового (большой палец слева); виды сбоку — пальцы к центру
+    const mirror = (P.side || P.thumbs) ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';
+    // Свет на пальцах: у обычных поз градиент горизонтальный (свет слева, тень справа). Зеркало переворачивает и его,
+    // поэтому у левой руки вектор градиента разворачивается — свет остаётся слева.
+    // У видов сбоку и «кулака сбоку» пальцы лежат горизонтально — градиент вертикальный (свет сверху);
+    // «большой вниз» перевёрнут по вертикали, поэтому вектор разворачивается и здесь.
+    const vertical = !!(P.side || P.thumbs);
+    const flipLight = vertical ? !!P.flipY : mirror;
+    const lv = vertical ? (flipLight ? [0, 1, 0, 0] : [0, 0, 0, 1]) : (flipLight ? [1, 0, 0, 0] : [0, 0, 1, 0]);
+
     // Запястье: форма от ладони вниз (в локальных координатах точка крепления — 0,0), чуть сужается и растворяется.
-    // Рисуется поверх ладони: закрывает её контур в месте соединения, боковые линии начинаются от краёв ладони и затухают.
-    const wristG = plain ? '' :
-      `<linearGradient id="${wid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-p)"/><stop offset=".3" style="stop-color:var(--hand-p)"/><stop offset=".55" style="stop-color:var(--hand-f);stop-opacity:.85"/><stop offset="1" style="stop-color:var(--hand-f);stop-opacity:0"/></linearGradient>` +
-      `<linearGradient id="${wid}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".24" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".32" style="stop-color:var(--hand-ol);stop-opacity:1"/><stop offset="1" style="stop-color:var(--hand-ol);stop-opacity:0"/></linearGradient>`;
-    const wristEl = plain ? '' :
-      `<path transform="translate(${wa[0]} ${wa[1]})${wa[2] ? ` rotate(${wa[2]})` : ''}" d="M-19 -6L-19 2C-19 12 -16 20 -16 34H16C16 20 19 12 19 2L19 -6Z" style="fill:url(#${wid});stroke:url(#${wid}s);stroke-width:4.5;stroke-linejoin:round"/>`;
-    const defs = (grad || !plain) ? `<defs>${wristG}` + (grad
-      ? `<radialGradient id="${gid}" cx="${gc[0]}" cy="${gc[1]}" r=".5" gradientTransform="translate(${gc[0]} ${gc[1]}) scale(1.3 .75) translate(${-gc[0]} ${-gc[1]})"><stop offset="0" style="stop-color:var(--hand-pd)"/><stop offset="1" style="stop-color:var(--hand-p)"/></radialGradient>` : '') + '</defs>' : '';
+    // Рисуется поверх ладони: начинается глубже в ладони и плавно проявляется (заливка и боковые линии), чтобы не было шва;
+    // боковые линии начинаются от краёв ладони и затухают. Перемычка в общем контуре (ниже) смыкает контур ладони с линиями запястья.
+    const noW = !!opts.noWrist;
+    const wristG = noW ? '' :
+      `<linearGradient id="${wid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-p);stop-opacity:0"/><stop offset=".32" style="stop-color:var(--hand-p);stop-opacity:1"/><stop offset=".5" style="stop-color:var(--hand-p)"/><stop offset=".62" style="stop-color:var(--hand-f);stop-opacity:.85"/><stop offset="1" style="stop-color:var(--hand-f);stop-opacity:0"/></linearGradient>` +
+      `<linearGradient id="${wid}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".3" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".4" style="stop-color:var(--hand-ol);stop-opacity:1"/><stop offset="1" style="stop-color:var(--hand-ol);stop-opacity:0"/></linearGradient>`;
+    const wristT = `translate(${wa[0]} ${wa[1]})${wa[2] ? ` rotate(${wa[2]})` : ''}`;
+    const wristEl = noW ? '' :
+      `<path transform="${wristT}" d="M-19 -16L-19 2C-19 12 -16 20 -16 34H16C16 20 19 12 19 2L19 -16Z" style="fill:url(#${wid});stroke:url(#${wid}s);stroke-width:4.5;stroke-linejoin:round"/>`;
+    const wristBridge = noW ? '' : `<path transform="${wristT}" d="M-19 -4V8H19V-4Z" style="stroke-width:4.5"/>`;   // закрывает просвет между контуром ладони и линиями запястья
+    // объём пальцев: градиент (свет → тень) из тех же --hand-* — подстраивается под тему
+    const fg = (id, a, b, c) =>
+      `<linearGradient id="${id}" x1="${lv[0]}" y1="${lv[1]}" x2="${lv[2]}" y2="${lv[3]}"><stop offset="0" style="stop-color:${a}"/><stop offset=".55" style="stop-color:${b}"/><stop offset="1" style="stop-color:${c}"/></linearGradient>`;
+    const fingerDefs =
+      fg(gid + 'f', 'color-mix(in srgb, var(--hand-p) 55%, var(--hand-f))', 'var(--hand-f)', 'color-mix(in srgb, var(--hand-f) 70%, var(--hand-c))') +
+      fg(gid + 'c', 'var(--hand-f)', 'var(--hand-c)', 'color-mix(in srgb, var(--hand-c) 80%, var(--hand-ol))') +
+      fg(gid + 't', 'color-mix(in srgb, var(--hand-p) 40%, var(--hand-t))', 'var(--hand-t)', 'color-mix(in srgb, var(--hand-t) 75%, var(--hand-c))');
+    const defs = `<defs>${wristG}${fingerDefs}` + (grad
+      ? `<radialGradient id="${gid}" cx="${gc[0]}" cy="${gc[1]}" r=".5" gradientTransform="translate(${gc[0]} ${gc[1]}) scale(1.3 .75) translate(${-gc[0]} ${-gc[1]})"><stop offset="0" style="stop-color:var(--hand-pd)"/><stop offset="1" style="stop-color:var(--hand-p)"/></radialGradient>` : '') + '</defs>';
     const inner = defs +
       // 1) общий тёмный контур всей кисти (цвета — в css/style.css, классы .hp-*)
-      `<g class="hp-ol">${all.filter(a => !'slwj'.includes(a[1])).map(a => a[0]).join('')}</g>` +
-      // 2) заливка: у каждой части свой оттенок и своя тёмная обводка, чтобы пальцы не сливались с ладонью
-      all.map(a => `<g class="hp-${a[1]}">${a[0]}</g>`).join('') + wristEl;   // запястье — верхний слой
+      `<g class="hp-ol">${all.filter(a => !'slwj'.includes(a[1])).map(a => a[0]).join('')}${wristBridge}</g>` +
+      // 2) заливка: у каждой части свой оттенок и своя тёмная обводка, чтобы пальцы не сливались с ладонью;
+      //    у пальцев (f), согнутых пальцев (c) и больших пальцев (t) — градиент (inline-style перебивает fill из css)
+      all.map(a => {
+        const st = 'fct'.includes(a[1]) ? ` style="fill:url(#${gid}${a[1]})"` : '';
+        return `<g class="hp-${a[1]}"${st}>${a[0]}</g>`;
+      }).join('') + wristEl;   // запястье — верхний слой
     const rotated = P.rot ? `<g transform="rotate(${P.rot} 60 ${P.rc ?? 85})">${inner}</g>`
       : P.flipY ? `<g transform="translate(0 ${P.flipY * 2}) scale(1 -1)">${inner}</g>` : inner;
     // выравнивание: центр ладони у всех видов — (54, 105), у «большого вниз» ладонь чуть выше (подвешен палец)
-    const T = plain ? [0, 0] : P.side ? [19, 17] : P.down ? [-12, 40] : P.thumbs ? [-13, 6] : [0, 0];
+    const T = P.side ? [19, 17] : P.down ? [-12, 40] : P.thumbs ? [-13, 6] : [0, 0];
     const placed = (T[0] || T[1]) ? `<g transform="translate(${T[0]} ${T[1]})">${rotated}</g>` : rotated;
-    const SIDE_TOWARD_CENTER = true;   // вид сбоку: пальцы смотрят к центру (левая вправо, правая влево); false — наружу
-    const mirror = (P.side || P.thumbs) ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';   // обычные позы: левая — зеркало базового (большой палец слева)
     // зеркало — относительно центра ладони (x = 54), чтобы левая и правая стояли симметрично
-    return mirror ? `<g transform="translate(${plain ? 120 : 108} 0) scale(-1 1)">${placed}</g>` : placed;
+    return mirror ? `<g transform="translate(108 0) scale(-1 1)">${placed}</g>` : placed;
   }
   function handSVG(poseId, side) {
     const P = HAND_POSES.find(p => p.id === poseId) || HAND_POSES[0];
@@ -221,15 +274,18 @@
     return `<svg xmlns="http://www.w3.org/2000/svg" width="136" height="136" viewBox="${HAND_VB}" class="bh-hand" role="img" aria-label="${P.name}, ${side === 'L' ? 'левая' : 'правая'} рука">${body}</svg>`;
   }
   /* Хлопок: две ПРАВЫЕ руки с прямыми пальцами (поза «palm»), наложены друг на друга и повёрнуты на 45°
-     так, что большие пальцы смотрят вверх. Нижняя — ладонь (с затемнением), верхняя — внешняя сторона руки, слитая с цветом пальцев.
+     так, что большие пальцы смотрят вверх. Нижняя — ладонь (с затемнением), верхняя — тыльной стороной к зрителю:
+     ладонь слита с цветом пальцев, без складок ладони и линий сгибов. Запястья не рисуются.
      Палочки звука исходят от встречающихся кончиков пальцев. Цвета — те же .hp-* (переменные --hand-*). */
   function clapSVG() {
-    const under = handBody('palm', 'R', { shade: true, gradient: false, plain: true });
-    const over  = handBody('palm', 'R', { shade: false, merge: true, gradient: false, plain: true });   // верхняя: ладонь и внутренние обводки слиты с цветом пальцев
+    const under = handBody('palm', 'R', { shade: true, gradient: false, noWrist: true });
+    const over  = handBody('palm', 'R', { merge: true, gradient: false, noWrist: true, back: true });
     const burst = '<path class="hp-line" d="M54 22 V8 M37 26 L29 14 M71 26 L79 14"/>';
     const body = `<g transform="rotate(-45 54 80)"><g transform="translate(-6 5)">${under}</g><g transform="translate(5 -3)">${over}</g>${burst}</g>`;
     return `<svg xmlns="http://www.w3.org/2000/svg" width="136" height="136" viewBox="${fitBox('clap', body)}" class="bh-hand" role="img" aria-label="Хлопок">${body}</svg>`;
   }
+  // для страницы-просмотра hands-preview.html
+  window.__bihemHands = { handSVG, clapSVG, HAND_POSES };
   const SIGNS = HAND_POSES.map(p => p.id);
   const COLORS = [
     { name: 'красный', hex: '#e24b4a' },
