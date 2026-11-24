@@ -91,6 +91,16 @@
         : `M${cx - R} ${y2}L${cx - r} ${y1 + r}A${r} ${r} 0 0 1 ${cx + r} ${y1 + r}L${cx + R} ${y2}Z`;
       return `<path d="${d}"` + (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>';
     };
+    // Большой палец: шире у основания, «талия» у сустава, на кончике подушечка. plain — прежняя капсула.
+    const thumbS = (cx, y1, y2, w, a, ox, oy) => {
+      if (plain) return fing(cx, y1, y2, w, a, ox, oy, .9, true);
+      const L = y2 - y1, hb = w * .56, hm = w * .43, ht = w * .48, ym = y1 + L * .4;
+      const d = `M${cx - hb} ${y2 - hb}C${cx - hb} ${y2 - L * .3} ${cx - hm} ${ym + L * .22} ${cx - hm} ${ym}` +
+        `C${cx - hm} ${ym - L * .1} ${cx - ht} ${y1 + ht + L * .08} ${cx - ht} ${y1 + ht}A${ht} ${ht} 0 0 1 ${cx + ht} ${y1 + ht}` +
+        `C${cx + ht} ${y1 + ht + L * .08} ${cx + hm} ${ym - L * .1} ${cx + hm} ${ym}C${cx + hm} ${ym + L * .22} ${cx + hb} ${y2 - L * .3} ${cx + hb} ${y2 - hb}` +
+        `A${hb} ${hb} 0 0 1 ${cx - hb} ${y2 - hb}Z`;
+      return `<path d="${d}"` + (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>';
+    };
     // линии сгибов на пальце (две короткие черты) — тип 'j'
     const joints = (cx, y1, y2, w, a, ox, oy) => plain ? [] : [.42, .74].map(t =>
       [`<path d="M${cx - w * .27} ${y1 + (y2 - y1) * t}h${w * .54}"` + (a ? ` transform="rotate(${a} ${ox ?? cx} ${oy ?? y2})"` : '') + '/>', 'j']);
@@ -99,8 +109,8 @@
     const back = [], front = [];       // back — за ладонью, front — поверх неё; элементы вида [svg, тип]
     // большой палец (за ладонью)
     const th = P.thumb;
-    if (th === 'horiz') back.push([fing(88, 108 - 36, 108, 18, 90, 88, 108, .9, true), 't']);   // строго горизонтально
-    if (th === 'out')  back.push([fing(88, 112 - 46, 112, 18, 50, 88, 112, .9, true), 't']);
+    if (th === 'horiz') back.push([thumbS(88, 108 - 36, 108, 18, 90, 88, 108), 't']);   // строго горизонтально
+    if (th === 'out')  back.push([thumbS(88, 112 - 46, 112, 18, 50, 88, 112), 't']);
     if (th === 'side') back.push([fing(88, 112 - 44, 112, 18, P.thumbAng ?? 20, 88, 112, .9, true), 't']);
     if (th === 'up')   back.push([fing(84, 100 - 62, 100, 19, 4, 84, 100, .9, true), 't']);
     // выпрямленные пальцы (за ладонью)
@@ -161,7 +171,7 @@
       const fistClosed = `<rect x="34" y="68" width="66" height="62" rx="24"${gradStyle}/>`;
       all = [
         // большой палец: «вниз» — кончик наклонён в сторону центра (+12°), ближе к внешнему краю
-        ...(P.fig ? [] : [[fing(P.down ? 44 : 48, 34, 94, 17, P.down ? 12 : 10, P.down ? 44 : 48, 94, .85, true), 't']]),
+        ...(P.fig ? [] : [[P.down ? thumbS(44, 34, 94, 17, 12, 44, 94) : fing(48, 34, 94, 17, 10, 48, 94, .85, true), 't']]),
         [P.down ? fistDown : fistClosed, 'p'],
         // «вниз»: намёки на пальцы продолжаются бороздками от впадин между костяшками
         ...(P.down ? [80, 94, 108].map(y => [`<path d="M96 ${y} q-7 2 -14 0"/>`, 'l']) : []),
@@ -178,7 +188,7 @@
       const EX = [108, 122, 112, 98];                          // докуда доходит вытянутый палец
       const CX = [78, 80, 76, 72];                             // докуда доходит согнутый палец
       const bk = [], fr = [];
-      if (P.thumb === 'out') bk.push([`<rect x="26" y="40" width="54" height="19" rx="9.5" transform="rotate(-18 28 49)"/>`, 't']);
+      if (P.thumb === 'out') bk.push([thumbS(30, 50 - 54, 50, 19, 72, 30, 50), 't']);
       [0, 1, 2, 3].forEach(i => {
         if (i === RING) {
           // палец и большой соединены — сбоку это кольцо в «слоте» этого пальца
