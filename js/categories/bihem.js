@@ -152,24 +152,24 @@
       // кулак сбоку. Базовый рисунок смотрит ВПРАВО (левая рука), правая рука — зеркало: пальцы всегда смотрят к центру.
       // Большой палец — со стороны запястья (снаружи); «вверх» и «фига» — стопка согнутых пальцев на стороне центра,
       // «вниз» — тыльная сторона: видны только костяшки.
-      const Y = [68, 83.5, 99, 114.5], W = P.fig ? [44, 50, 46, 42] : [42, 50, 46, 42];   // пальцы выходят за край ладони, мизинец и указательный чуть короче
-      const stack = Y.map((y, k) => [`<rect x="58" y="${y}" width="${W[k]}" height="15.5" rx="7.75"${P.fig && k === 0 ? ' transform="rotate(-18 65 76)"' : ''}/>`, 'c']);
+      const Y = [68, 83.5, 99, 114.5], W = P.fig ? [32, 38, 34, 30] : [30, 38, 34, 30];   // кулак: пальцы короткие, лишь чуть выходят за край ладони   // пальцы выходят за край ладони, мизинец и указательный чуть короче
+      const stack = Y.map((y, k) => [`<rect x="70" y="${y}" width="${W[k]}" height="15.5" rx="7.75"${P.fig && k === 0 ? ' transform="rotate(-18 77 76)"' : ''}/>`, 'c']);
       // «вниз»: тыльная сторона, костяшки — не отдельные фигуры, а соединённые дуги самого контура
-      const arcs = 'a8.25 8.25 0 0 1 0 16.5 '.repeat(4);
-      const fistDown = `<path d="M52 66 H96 ${arcs}H52 A24 24 0 0 1 28 108 V90 A24 24 0 0 1 52 66 Z"/>`;   // рука уже — закрытое положение
+      const arcs = 'a6 7 0 0 1 0 14 '.repeat(4);
+      const fistDown = `<path d="M60 66 H96 ${arcs}H60 A24 24 0 0 1 36 98 V90 A24 24 0 0 1 60 66 Z"/>`;   // рука узкая — закрытое положение
       // «вверх»/«фига»: рука почти в кулаке — ладонь меньше, её внешний край у основания большого пальца
       const fistClosed = `<rect x="34" y="68" width="66" height="62" rx="24"${gradStyle}/>`;
       all = [
         // большой палец: «вниз» — кончик наклонён в сторону центра (+12°), ближе к внешнему краю
-        ...(P.fig ? [] : [[fing(P.down ? 40 : 48, 34, 94, 17, P.down ? 12 : 10, P.down ? 40 : 48, 94, .85, true), 't']]),
+        ...(P.fig ? [] : [[fing(P.down ? 44 : 48, 34, 94, 17, P.down ? 12 : 10, P.down ? 44 : 48, 94, .85, true), 't']]),
         [P.down ? fistDown : fistClosed, 'p'],
         // «вниз»: намёки на пальцы продолжаются бороздками от впадин между костяшками
-        ...(P.down ? [82.5, 99, 115.5].map(y => [`<path d="M96 ${y} q-12 3 -26 0"/>`, 'l']) : []),
+        ...(P.down ? [80, 94, 108].map(y => [`<path d="M96 ${y} q-7 2 -14 0"/>`, 'l']) : []),
         // «фига»: большой палец лежит слоем ближе к ладони — в просвете между указательным и средним
         ...(P.fig ? [[`<rect x="68" y="75.5" width="50" height="15" rx="7.5"/>`, 't']] : []),
         ...(P.down ? [] : stack),
       ];
-      wa = [P.down ? 28 : 34, 99, 90];
+      wa = [P.down ? 36 : 34, P.down ? 94 : 99, 90, P.down ? .8 : 1];
     }
 
     if (P.side) {
@@ -197,7 +197,7 @@
       `<linearGradient id="${wid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-p)"/><stop offset=".3" style="stop-color:var(--hand-p)"/><stop offset=".55" style="stop-color:var(--hand-f);stop-opacity:.85"/><stop offset="1" style="stop-color:var(--hand-f);stop-opacity:0"/></linearGradient>` +
       `<linearGradient id="${wid}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".24" style="stop-color:var(--hand-ol);stop-opacity:0"/><stop offset=".32" style="stop-color:var(--hand-ol);stop-opacity:1"/><stop offset="1" style="stop-color:var(--hand-ol);stop-opacity:0"/></linearGradient>`;
     const wristEl = plain ? '' :
-      `<path transform="translate(${wa[0]} ${wa[1]})${wa[2] ? ` rotate(${wa[2]})` : ''}" d="M-19 -6L-19 2C-19 12 -16 20 -16 34H16C16 20 19 12 19 2L19 -6Z" style="fill:url(#${wid});stroke:url(#${wid}s);stroke-width:4.5;stroke-linejoin:round"/>`;
+      `<path transform="translate(${wa[0]} ${wa[1]})${wa[2] ? ` rotate(${wa[2]})` : ''}${wa[3] ? ` scale(${wa[3]})` : ''}" d="M-19 -6L-19 2C-19 12 -16 20 -16 34H16C16 20 19 12 19 2L19 -6Z" style="fill:url(#${wid});stroke:url(#${wid}s);stroke-width:4.5;stroke-linejoin:round"/>`;
     const defs = (grad || !plain) ? `<defs>${wristG}` + (grad
       ? `<radialGradient id="${gid}" cx="${gc[0]}" cy="${gc[1]}" r=".5" gradientTransform="translate(${gc[0]} ${gc[1]}) scale(1.3 .75) translate(${-gc[0]} ${-gc[1]})"><stop offset="0" style="stop-color:var(--hand-pd)"/><stop offset="1" style="stop-color:var(--hand-p)"/></radialGradient>` : '') + '</defs>' : '';
     const inner = defs +
@@ -208,7 +208,7 @@
     const rotated = P.rot ? `<g transform="rotate(${P.rot} 60 ${P.rc ?? 85})">${inner}</g>`
       : P.flipY ? `<g transform="translate(0 ${P.flipY * 2}) scale(1 -1)">${inner}</g>` : inner;
     // выравнивание: центр ладони у всех видов — (54, 105), у «большого вниз» ладонь чуть выше (подвешен палец)
-    const T = plain ? [0, 0] : P.side ? [19, 17] : P.down ? [-12, 40] : P.thumbs ? [-13, 6] : [0, 0];
+    const T = plain ? [0, 0] : P.side ? [19, 17] : P.down ? [-13, 35] : P.thumbs ? [-13, 6] : [0, 0];
     const placed = (T[0] || T[1]) ? `<g transform="translate(${T[0]} ${T[1]})">${rotated}</g>` : rotated;
     const SIDE_TOWARD_CENTER = true;   // вид сбоку: пальцы смотрят к центру (левая вправо, правая влево); false — наружу
     const mirror = (P.side || P.thumbs) ? (side === 'R') === SIDE_TOWARD_CENTER : side === 'L';   // обычные позы: левая — зеркало базового (большой палец слева)
